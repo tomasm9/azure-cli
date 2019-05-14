@@ -31,9 +31,8 @@ CLASSIFIERS = [
 ]
 
 DEPENDENCIES = [
-    'azure-mgmt-netapp==0.4.0',
     'azure-cli-core',
-    'azure.cli.core.commands.validators'
+    'azure-mgmt-netapp==0.4.0'
 ]
 
 with open('README.rst', 'r', encoding='utf-8') as f:
