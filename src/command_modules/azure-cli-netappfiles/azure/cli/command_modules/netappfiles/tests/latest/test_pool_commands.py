@@ -50,7 +50,7 @@ class AzureNetAppFilesPoolServiceScenarioTest(ScenarioTest):
 
         self.cmd("az netappfiles account create --resource-group {rg} --account-name '%s' -l 'westus2'" % account_name).get_output_in_json()
         try:
-            pool = self.cmd("az netappfiles pool create --resource-group {rg} --account-name %s --pool-name %s -l 'westus2' %s " % (account_name, pool_name, POOL_DEFAULT_TOO_SMALL)).get_output_in_json()
+            self.cmd("az netappfiles pool create --resource-group {rg} --account-name %s --pool-name %s -l 'westus2' %s " % (account_name, pool_name, POOL_DEFAULT_TOO_SMALL)).get_output_in_json()
         except Exception as ex:
             assert isinstance(ex, CLIError)
 
@@ -61,7 +61,7 @@ class AzureNetAppFilesPoolServiceScenarioTest(ScenarioTest):
 
         self.cmd("az netappfiles account create --resource-group {rg} --account-name '%s' -l 'westus2'" % account_name).get_output_in_json()
         try:
-            pool = self.cmd("az netappfiles pool create --resource-group {rg} --account-name %s --pool-name %s -l 'westus2' %s " % (account_name, pool_name, POOL_DEFAULT_STRING_SIZE)).get_output_in_json()
+            self.cmd("az netappfiles pool create --resource-group {rg} --account-name %s --pool-name %s -l 'westus2' %s " % (account_name, pool_name, POOL_DEFAULT_STRING_SIZE)).get_output_in_json()
         except Exception as ex:
             assert isinstance(ex, CLIError)
 

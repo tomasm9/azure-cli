@@ -9,7 +9,7 @@ from msrestazure.azure_exceptions import CloudError
 
 
 def netappfiles_exception_handler(ex):
-    if isinstance(ex, CloudError) or isinstance(ex, ValidationError) or isinstance(ex, ValueError):
+    if isinstance(ex, (CloudError, ValidationError, ValueError)):
         message = ex
         raise CLIError(message)
     else:
