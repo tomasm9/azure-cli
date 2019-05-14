@@ -62,5 +62,6 @@
     "aks": "src/command_modules/azure-cli-acs/azure/cli/command_modules/acs/_help.py",
     "deployment": "src/command_modules/azure-cli-resource/azure/cli/command_modules/resource/_help.py",
     "functionapp": "src/command_modules/azure-cli-appservice/azure/cli/command_modules/appservice/_help.py",
-    "lock": "src/command_modules/azure-cli-resource/azure/cli/command_modules/resource/_help.py"
+    "lock": "src/command_modules/azure-cli-resource/azure/cli/command_modules/resource/_help.py",
+    "netappfiles": "src/command_modules/azure-cli-netappfiles/azure/cli/command_modules/netappfiles/_help.py"
 }
