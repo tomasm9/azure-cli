@@ -71,6 +71,13 @@ def load_arguments(self, _):
         c.argument('properties', options_list=['--properties', '-p'], help='a JSON-formatted string containing resource properties')
         c.argument('is_full_object', action='store_true', help='Indicates that the properties object includes other options such as location, tags, sku, and/or plan.')
 
+    with self.argument_context('resource link') as c:
+        c.argument('target_id', options_list=['--target', c.deprecate(target='--target-id', redirect='--target', hide=True)], help='Fully-qualified resource ID of the resource link target.')
+        c.argument('link_id', options_list=['--link', c.deprecate(target='--link-id', redirect='--link', hide=True)], help='Fully-qualified resource ID of the resource link.')
+        c.argument('notes', help='Notes for the link.')
+        c.argument('scope', help='Fully-qualified scope for retrieving links.')
+        c.argument('filter_string', options_list=['--filter', c.deprecate(target='--filter-string', redirect='--filter', hide=True)], help='Filter string for limiting results.')
+
     with self.argument_context('provider') as c:
         c.ignore('top')
         c.argument('resource_provider_namespace', options_list=['--namespace', '-n'], completer=get_providers_completion_list, help=_PROVIDER_HELP_TEXT)
@@ -119,7 +126,7 @@ def load_arguments(self, _):
 
     with self.argument_context('policy assignment create', resource_type=ResourceType.MGMT_RESOURCE_POLICY) as c:
         c.argument('name', options_list=['--name', '-n'], help='Name of the new policy assignment.')
-        c.argument('params', options_list=['--params', '-p'], help='JSON formatted string or path to file with parameter values of policy rule.', min_api='2016-12-01')
+        c.argument('params', options_list=['--params', '-p'], help='JSON formatted string or a path to a file or uri with parameter values of the policy rule.', type=file_type, completer=FilesCompleter(), min_api='2016-12-01')
 
     with self.argument_context('policy assignment create', resource_type=ResourceType.MGMT_RESOURCE_POLICY, min_api='2017-06-01-preview') as c:
         c.argument('policy_set_definition', options_list=['--policy-set-definition', '-d'], help='Name or id of the policy set definition.')

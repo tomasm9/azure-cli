@@ -9,7 +9,10 @@ from collections import OrderedDict
 from azure.cli.core.profiles import PROFILE_TYPE
 from azure.cli.core.commands import CliCommandType
 
-from ._client_factory import (_auth_client_factory, _graph_client_factory)
+from ._client_factory import (_auth_client_factory, _graph_client_factory,
+                              _msi_user_identities_operations, _msi_operations_operations)
+
+from ._validators import process_msi_namespace, process_assignment_namespace
 
 
 def transform_definition_list(result):
@@ -94,18 +97,28 @@ def get_graph_client_groups(cli_ctx, _):
 def load_command_table(self, _):
 
     role_users_sdk = CliCommandType(
-        operations_tmpl='azure.graphrbac.operations.users_operations#UsersOperations.{}',
+        operations_tmpl='azure.graphrbac.operations#UsersOperations.{}',
         client_factory=get_graph_client_users
     )
 
     role_group_sdk = CliCommandType(
-        operations_tmpl='azure.graphrbac.operations.groups_operations#GroupsOperations.{}',
+        operations_tmpl='azure.graphrbac.operations#GroupsOperations.{}',
         client_factory=get_graph_client_groups
     )
 
     signed_in_users_sdk = CliCommandType(
-        operations_tmpl='azure.graphrbac.operations.signed_in_user_operations#SignedInUserOperations.{}',
+        operations_tmpl='azure.graphrbac.operations#SignedInUserOperations.{}',
         client_factory=get_graph_client_signed_in_users
+    )
+
+    identity_sdk = CliCommandType(
+        operations_tmpl='azure.mgmt.msi.operations#UserAssignedIdentitiesOperations.{}',
+        client_factory=_msi_user_identities_operations
+    )
+
+    sp_sdk = CliCommandType(
+        operations_tmpl='azure.graphrbac.operations.service_principals_operations#ServicePrincipalsOperations.{}',
+        client_factory=get_graph_client_service_principals
     )
 
     role_custom = CliCommandType(operations_tmpl='azure.cli.command_modules.role.custom#{}')
@@ -117,9 +130,9 @@ def load_command_table(self, _):
         g.custom_command('update', 'update_role_definition')
 
     with self.command_group('role assignment') as g:
-        g.custom_command('delete', 'delete_role_assignments')
-        g.custom_command('list', 'list_role_assignments', table_transformer=transform_assignment_list)
-        g.custom_command('create', 'create_role_assignment')
+        g.custom_command('delete', 'delete_role_assignments', validator=process_assignment_namespace)
+        g.custom_command('list', 'list_role_assignments', validator=process_assignment_namespace, table_transformer=transform_assignment_list)
+        g.custom_command('create', 'create_role_assignment', validator=process_assignment_namespace)
         g.custom_command('list-changelogs', 'list_role_assignment_change_logs')
 
     with self.command_group('ad app', client_factory=get_graph_client_applications, resource_type=PROFILE_TYPE,
@@ -132,6 +145,8 @@ def load_command_table(self, _):
         g.custom_command('permission list', 'list_permissions')
         g.custom_command('permission add', 'add_permission')
         g.custom_command('permission delete', 'delete_permission')
+        g.custom_command('permission list-grants', 'list_permission_grants')
+        g.custom_command('permission admin-consent', 'admin_consent')
         g.generic_update_command('update', setter_name='patch_application', setter_type=role_custom,
                                  getter_name='show_application', getter_type=role_custom,
                                  custom_func_name='update_application', custom_func_type=role_custom)
@@ -144,12 +159,14 @@ def load_command_table(self, _):
         g.custom_command('add', 'add_application_owner')
         g.custom_command('remove', 'remove_application_owner')
 
-    with self.command_group('ad sp', resource_type=PROFILE_TYPE, exception_handler=graph_err_handler,
+    with self.command_group('ad sp', command_type=sp_sdk, resource_type=PROFILE_TYPE, exception_handler=graph_err_handler,
                             transform=transform_graph_objects_with_cred) as g:
         g.custom_command('create', 'create_service_principal')
         g.custom_command('delete', 'delete_service_principal')
         g.custom_command('list', 'list_sps', client_factory=get_graph_client_service_principals)
         g.custom_show_command('show', 'show_service_principal', client_factory=get_graph_client_service_principals)
+        g.generic_update_command('update', getter_name='show_service_principal', getter_type=role_custom,
+                                 setter_name='patch_service_principal', setter_type=role_custom)
 
     with self.command_group('ad sp owner', exception_handler=graph_err_handler) as g:
         g.custom_command('list', 'list_service_principal_owners')
@@ -189,3 +206,10 @@ def load_command_table(self, _):
         g.command('add', 'add_member')
         g.command('remove', 'remove_member')
         g.custom_command('check', 'check_group_membership', client_factory=get_graph_client_groups)
+
+    with self.command_group('identity', identity_sdk, min_api='2017-12-01') as g:
+        g.command('create', 'create_or_update', validator=process_msi_namespace)
+        g.show_command('show', 'get')
+        g.command('delete', 'delete')
+        g.custom_command('list', 'list_user_assigned_identities')
+        g.command('list-operations', 'list', operations_tmpl='azure.mgmt.msi.operations.operations#Operations.{}', client_factory=_msi_operations_operations)

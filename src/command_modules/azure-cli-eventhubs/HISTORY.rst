@@ -3,13 +3,26 @@
 Release History
 ===============
 
+0.3.5
++++++
+* namespace: Added network-rule commands.
+* namespace create/update: Added --default-action argument for network rules.
+
+0.3.4
++++++
+* eventhubs eventhub create/update: Added --skip-empty-archives flag to support empty archives in capture.
+
+0.3.3
++++++
+* Minor fixes
+
 0.3.2
 +++++
 * Minor fixes
 
 0.3.1
 +++++
-* eventhub namespace create/update: Added --enable-kafka flag to support Kafka.
+* eventhubs namespace create/update: Added --enable-kafka flag to support Kafka.
 
 0.3.0
 +++++

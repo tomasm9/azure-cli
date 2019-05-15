@@ -7,22 +7,23 @@
 
 import argparse
 from collections import OrderedDict
+import copy
 import json
 import re
-import copy
 from six import string_types
+
+from azure.cli.core import AzCommandsLoader, EXCLUDED_PARAMS
+from azure.cli.core.commands import LongRunningOperation, _is_poller, cached_get, cached_put
+from azure.cli.core.commands.client_factory import get_mgmt_service_client
+from azure.cli.core.commands.validators import IterateValue
+from azure.cli.core.util import (
+    shell_safe_json_parse, augment_no_wait_handler_args, get_command_type_kwarg, find_child_item)
+from azure.cli.core.profiles import ResourceType, get_sdk
 
 from knack.arguments import CLICommandArgument, ignore_type
 from knack.introspection import extract_args_from_signature, extract_full_summary_from_signature
 from knack.log import get_logger
 from knack.util import todict, CLIError
-
-from azure.cli.core import AzCommandsLoader, EXCLUDED_PARAMS
-from azure.cli.core.commands import LongRunningOperation, _is_poller
-from azure.cli.core.commands.client_factory import get_mgmt_service_client
-from azure.cli.core.commands.validators import IterateValue
-from azure.cli.core.util import shell_safe_json_parse, augment_no_wait_handler_args, get_command_type_kwarg
-from azure.cli.core.profiles import ResourceType, get_sdk
 
 logger = get_logger(__name__)
 EXCLUDED_NON_CLIENT_PARAMS = list(set(EXCLUDED_PARAMS) - set(['self', 'client']))
@@ -226,7 +227,6 @@ def register_ids_argument(cli_ctx):
             command.add_argument('ids', '--ids', **id_kwargs)
 
     def parse_ids_arguments(_, command, args):
-
         namespace = args
         cmd = namespace._cmd  # pylint: disable=protected-access
 
@@ -259,6 +259,31 @@ def register_ids_argument(cli_ctx):
         for arg in combined_args:
             setattr(namespace, arg.name, IterateValue())
 
+        def assemble_json(ids):
+            lcount = 0
+            lind = None
+            for i, line in enumerate(ids):
+                if line == '[':
+                    if lcount == 0:
+                        lind = i
+                    lcount += 1
+                elif line == ']':
+                    lcount -= 1
+                    # final closed set of matching brackets
+                    if lcount == 0:
+                        left = lind
+                        right = i + 1
+                        l_comp = ids[:left]
+                        m_comp = [''.join(ids[left:right])]
+                        r_comp = ids[right:]
+                        ids = l_comp + m_comp + r_comp
+                        return assemble_json(ids)
+            # base case--no more merging required
+            return ids
+
+        # reassemble JSON strings from bash
+        ids = assemble_json(ids)
+
         # expand the IDs into the relevant fields
         full_id_list = []
         for val in ids:
@@ -273,6 +298,8 @@ def register_ids_argument(cli_ctx):
             except ValueError:
                 # supports piping of --ids to the command when using TSV. Requires use of --query
                 full_id_list = full_id_list + val.splitlines()
+        if full_id_list:
+            setattr(namespace, '_ids', full_id_list)
 
         for val in full_id_list:
             if not is_valid_resource_id(val):
@@ -301,6 +328,23 @@ def register_global_subscription_argument(cli_ctx):
     def add_subscription_parameter(_, **kwargs):
         from azure.cli.core._completers import get_subscription_id_list
 
+        class SubscriptionNameOrIdAction(argparse.Action):  # pylint:disable=too-few-public-methods
+
+            def __call__(self, parser, namespace, value, option_string=None):
+                from azure.cli.core._profile import Profile
+                profile = Profile(cli_ctx=namespace._cmd.cli_ctx)  # pylint: disable=protected-access
+                subscriptions_list = profile.load_cached_subscriptions()
+                sub_id = None
+                for sub in subscriptions_list:
+                    match_val = value.lower()
+                    if sub['id'].lower() == match_val or sub['name'].lower() == match_val:
+                        sub_id = sub['id']
+                        break
+                if not sub_id:
+                    logger.warning("Subscription '%s' not recognized.", value)
+                    sub_id = value
+                namespace._subscription = sub_id  # pylint: disable=protected-access
+
         commands_loader = kwargs['commands_loader']
         cmd_tbl = commands_loader.command_table
         subscription_kwargs = {
@@ -308,6 +352,7 @@ def register_global_subscription_argument(cli_ctx):
                     'using `az account set -s NAME_OR_ID`',
             'completer': get_subscription_id_list,
             'arg_group': 'Global',
+            'action': SubscriptionNameOrIdAction,
             'configured_default': 'subscription',
             'id_part': 'subscription'
         }
@@ -321,16 +366,6 @@ def register_global_subscription_argument(cli_ctx):
 add_usage = '--add property.listProperty <key=value, string or JSON string>'
 set_usage = '--set property1.property2=<value>'
 remove_usage = '--remove property.list <indexToRemove> OR --remove propertyToRemove'
-
-
-def _get_child(parent, collection_name, item_name, collection_key):
-    if not item_name:
-        raise CLIError("Name property for collection '{}' not provided. Check your input.".format(collection_name))
-    items = getattr(parent, collection_name)
-    result = next((x for x in items if getattr(x, collection_key, '').lower() == item_name.lower()), None)
-    if not result:
-        raise CLIError("Property '{}' does not exist for key '{}'.".format(item_name, collection_key))
-    return result
 
 
 def _get_operations_tmpl(cmd, custom_command=False):
@@ -349,8 +384,9 @@ def _get_client_factory(_, custom_command=False, **kwargs):
     return factory
 
 
-def get_arguments_loader(context, getter_op, cmd_args=None):
-    getter_args = dict(extract_args_from_signature(context.get_op_handler(getter_op), excluded_params=EXCLUDED_PARAMS))
+def get_arguments_loader(context, getter_op, cmd_args=None, operation_group=None):
+    getter_args = dict(extract_args_from_signature(context.get_op_handler(getter_op, operation_group=operation_group),
+                                                   excluded_params=EXCLUDED_PARAMS))
     cmd_args = cmd_args or {}
     cmd_args.update(getter_args)
     cmd_args['cmd'] = CLICommandArgument('cmd', arg_type=ignore_type)
@@ -372,7 +408,8 @@ def _cli_generic_update_command(context, name, getter_op, setter_op, setter_arg_
             custom_function_op))
 
     def set_arguments_loader():
-        return dict(extract_args_from_signature(context.get_op_handler(setter_op), excluded_params=EXCLUDED_PARAMS))
+        return dict(extract_args_from_signature(context.get_op_handler(
+            setter_op, operation_group=kwargs.get('operation_group')), excluded_params=EXCLUDED_PARAMS))
 
     def function_arguments_loader():
         if not custom_function_op:
@@ -383,7 +420,7 @@ def _cli_generic_update_command(context, name, getter_op, setter_op, setter_arg_
         return dict(extract_args_from_signature(custom_op, excluded_params=EXCLUDED_PARAMS))
 
     def generic_update_arguments_loader():
-        arguments = get_arguments_loader(context, getter_op)
+        arguments = get_arguments_loader(context, getter_op, operation_group=kwargs.get('operation_group'))
         arguments.update(set_arguments_loader())
         arguments.update(function_arguments_loader())
         arguments.pop('instance', None)  # inherited from custom_function(instance, ...)
@@ -436,7 +473,7 @@ def _cli_generic_update_command(context, name, getter_op, setter_op, setter_arg_
                 client = factory(context.cli_ctx, args)
 
         client_arg_name = resolve_client_arg_name(op, kwargs)
-        op_handler = context.get_op_handler(op)
+        op_handler = context.get_op_handler(op, operation_group=kwargs.get('operation_group'))
         raw_args = dict(extract_args_from_signature(op_handler, excluded_params=EXCLUDED_NON_CLIENT_PARAMS))
         op_args = {key: val for key, val in args.items() if key in raw_args}
         if client_arg_name in raw_args:
@@ -449,23 +486,22 @@ def _cli_generic_update_command(context, name, getter_op, setter_op, setter_arg_
         context_copy.cli_ctx = cmd.cli_ctx
         force_string = args.get('force_string', False)
         ordered_arguments = args.pop('ordered_arguments', [])
+        dest_names = child_arg_name.split('.')
+        child_names = [args.get(key, None) for key in dest_names]
         for item in ['properties_to_add', 'properties_to_set', 'properties_to_remove']:
             if args[item]:
                 raise CLIError("Unexpected '{}' was not empty.".format(item))
             del args[item]
 
         getter, getterargs = _extract_handler_and_args(args, cmd.command_kwargs, getter_op, context_copy)
+
         if child_collection_prop_name:
-            parent = getter(**getterargs)
-            instance = _get_child(
-                parent,
-                child_collection_prop_name,
-                args.get(child_arg_name),
-                child_collection_key
-            )
+            parent = cached_get(cmd, getter, **getterargs)
+            instance = find_child_item(
+                parent, *child_names, path=child_collection_prop_name, key_path=child_collection_key)
         else:
             parent = None
-            instance = getter(**getterargs)
+            instance = cached_get(cmd, getter, **getterargs)
 
         # pass instance to the custom_function, if provided
         if custom_function_op:
@@ -513,7 +549,10 @@ def _cli_generic_update_command(context, name, getter_op, setter_op, setter_arg_
             if no_wait_param:
                 setterargs[no_wait_param] = args[no_wait_param]
 
-        result = setter(**setterargs)
+        if setter_arg_name == 'parameters':
+            result = cached_put(cmd, setter, **setterargs)
+        else:
+            result = cached_put(cmd, setter, setterargs[setter_arg_name], **setterargs)
 
         if supports_no_wait and no_wait_enabled:
             return None
@@ -523,16 +562,11 @@ def _cli_generic_update_command(context, name, getter_op, setter_op, setter_arg_
             return None
 
         if _is_poller(result):
-            result = LongRunningOperation(cmd.cli_ctx, 'Starting {}'.format(cmd.name))(result)
+            result = result.result()
 
         if child_collection_prop_name:
-            result = _get_child(
-                result,
-                child_collection_prop_name,
-                args.get(child_arg_name),
-                child_collection_key
-            )
-
+            result = find_child_item(
+                result, *child_names, path=child_collection_prop_name, key_path=child_collection_key)
         return result
 
     context._cli_command(name, handler=handler, argument_loader=generic_update_arguments_loader, **kwargs)  # pylint: disable=protected-access
@@ -546,7 +580,7 @@ def _cli_wait_command(context, name, getter_op, custom_command=False, **kwargs):
     factory = _get_client_factory(name, custom_command=custom_command, **kwargs)
 
     def generic_wait_arguments_loader():
-        cmd_args = get_arguments_loader(context, getter_op)
+        cmd_args = get_arguments_loader(context, getter_op, operation_group=kwargs.get('operation_group'))
 
         group_name = 'Wait Condition'
         cmd_args['timeout'] = CLICommandArgument(
@@ -596,8 +630,8 @@ def _cli_wait_command(context, name, getter_op, custom_command=False, **kwargs):
         import time
 
         context_copy = copy.copy(context)
-        getter_args = dict(extract_args_from_signature(context.get_op_handler(getter_op),
-                                                       excluded_params=EXCLUDED_NON_CLIENT_PARAMS))
+        getter_args = dict(extract_args_from_signature(context.get_op_handler(
+            getter_op, operation_group=kwargs.get('operation_group')), excluded_params=EXCLUDED_NON_CLIENT_PARAMS))
         cmd = args.get('cmd') if 'cmd' in getter_args else args.pop('cmd')
         context_copy.cli_ctx = cmd.cli_ctx
         operations_tmpl = _get_operations_tmpl(cmd, custom_command=custom_command)
@@ -609,7 +643,7 @@ def _cli_wait_command(context, name, getter_op, custom_command=False, **kwargs):
         if client and (client_arg_name in getter_args):
             args[client_arg_name] = client
 
-        getter = context_copy.get_op_handler(getter_op)
+        getter = context_copy.get_op_handler(getter_op, operation_group=kwargs.get('operation_group'))
 
         timeout = args.pop('timeout')
         interval = args.pop('interval')
@@ -670,17 +704,19 @@ def _cli_show_command(context, name, getter_op, custom_command=False, **kwargs):
     factory = _get_client_factory(name, custom_command=custom_command, **kwargs)
 
     def generic_show_arguments_loader():
-        cmd_args = get_arguments_loader(context, getter_op)
+        cmd_args = get_arguments_loader(context, getter_op, operation_group=kwargs.get('operation_group'))
         return [(k, v) for k, v in cmd_args.items()]
 
     def description_loader():
-        return extract_full_summary_from_signature(context.get_op_handler(getter_op))
+        return extract_full_summary_from_signature(
+            context.get_op_handler(getter_op, operation_group=kwargs.get('operation_group')))
 
     def handler(args):
         from azure.cli.core.commands.client_factory import resolve_client_arg_name
         context_copy = copy.copy(context)
-        getter_args = dict(extract_args_from_signature(context_copy.get_op_handler(getter_op),
-                                                       excluded_params=EXCLUDED_NON_CLIENT_PARAMS))
+        getter_args = dict(extract_args_from_signature(
+            context_copy.get_op_handler(getter_op, operation_group=kwargs.get('operation_group')),
+            excluded_params=EXCLUDED_NON_CLIENT_PARAMS))
         cmd = args.get('cmd') if 'cmd' in getter_args else args.pop('cmd')
         context_copy.cli_ctx = cmd.cli_ctx
         operations_tmpl = _get_operations_tmpl(cmd, custom_command=custom_command)
@@ -693,7 +729,7 @@ def _cli_show_command(context, name, getter_op, custom_command=False, **kwargs):
         if client and (client_arg_name in getter_args):
             args[client_arg_name] = client
 
-        getter = context_copy.get_op_handler(getter_op)
+        getter = context_copy.get_op_handler(getter_op, operation_group=kwargs.get('operation_group'))
         try:
             return getter(**args)
         except Exception as ex:  # pylint: disable=broad-except
@@ -704,9 +740,11 @@ def _cli_show_command(context, name, getter_op, custom_command=False, **kwargs):
 
 def show_exception_handler(ex):
     if getattr(getattr(ex, 'response', ex), 'status_code', None) == 404:
-        logger.error(getattr(ex, 'message', ex))
         import sys
-        sys.exit(3)
+        from azure.cli.core.azlogging import CommandLoggerContext
+        with CommandLoggerContext(logger):
+            logger.error(getattr(ex, 'message', ex))
+            sys.exit(3)
     raise ex
 
 
@@ -1045,7 +1083,7 @@ def resolve_role_id(cli_ctx, role, scope):
             role_defs = list(client.list(scope, "roleName eq '{}'".format(role)))
             if not role_defs:
                 raise CLIError("Role '{}' doesn't exist.".format(role))
-            elif len(role_defs) > 1:
+            if len(role_defs) > 1:
                 ids = [r.id for r in role_defs]
                 err = "More than one role matches the given name '{}'. Please pick an id from '{}'"
                 raise CLIError(err.format(role, ids))

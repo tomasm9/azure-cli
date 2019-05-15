@@ -4,7 +4,7 @@
 # --------------------------------------------------------------------------------------------
 from __future__ import print_function
 
-__version__ = "2.0.56"
+__version__ = "2.0.64"
 
 import os
 import sys
@@ -18,8 +18,7 @@ from knack.completion import ARGCOMPLETE_ENV_NAME
 from knack.introspection import extract_args_from_signature, extract_full_summary_from_signature
 from knack.log import get_logger
 from knack.util import CLIError
-from knack.arguments import ArgumentsContext  # pylint: disable=unused-import
-
+from knack.arguments import ArgumentsContext, CaseInsensitiveList  # pylint: disable=unused-import
 
 logger = get_logger(__name__)
 
@@ -33,6 +32,7 @@ class AzCli(CLI):
     def __init__(self, **kwargs):
         super(AzCli, self).__init__(**kwargs)
 
+        from azure.cli.core.commands import register_cache_arguments
         from azure.cli.core.commands.arm import (
             register_ids_argument, register_global_subscription_argument)
         from azure.cli.core.cloud import get_active_cloud
@@ -58,6 +58,7 @@ class AzCli(CLI):
         register_global_transforms(self)
         register_global_subscription_argument(self)
         register_ids_argument(self)  # global subscription must be registered first!
+        register_cache_arguments(self)
 
         self.progress_controller = None
 
@@ -83,7 +84,14 @@ class AzCli(CLI):
 
     def show_version(self):
         from azure.cli.core.util import get_az_version_string
-        print(get_az_version_string())
+        ver_string, updates_available = get_az_version_string()
+        print(ver_string)
+        if updates_available == -1:
+            logger.warning('Unable to check if your CLI is up-to-date. Check your internet connection.')
+        elif updates_available:
+            logger.warning('You have %i updates available. Consider updating your CLI installation.', updates_available)
+        else:
+            print('Your CLI is up-to-date.')
 
     def exception_handler(self, ex):  # pylint: disable=no-self-use
         from azure.cli.core.util import handle_exception
@@ -125,8 +133,9 @@ class MainCommandsLoader(CLICommandsLoader):
                 installed_command_modules = [modname for _, modname, _ in
                                              pkgutil.iter_modules(mods_ns_pkg.__path__)
                                              if modname not in BLACKLISTED_MODS]
-            except ImportError:
-                pass
+            except ImportError as e:
+                logger.warning(e)
+
             logger.debug('Installed command modules %s', installed_command_modules)
             cumulative_elapsed_time = 0
             for mod in [m for m in installed_command_modules if m not in BLACKLISTED_MODS]:
@@ -154,6 +163,8 @@ class MainCommandsLoader(CLICommandsLoader):
 
         def _update_command_table_from_extensions(ext_suppressions):
 
+            from azure.cli.core.extension.operations import check_version_compatibility
+
             def _handle_extension_suppressions(extensions):
                 filtered_extensions = []
                 for ext in extensions:
@@ -171,6 +182,12 @@ class MainCommandsLoader(CLICommandsLoader):
                 allowed_extensions = _handle_extension_suppressions(extensions)
                 module_commands = set(self.command_table.keys())
                 for ext in allowed_extensions:
+                    try:
+                        check_version_compatibility(ext.get_metadata())
+                    except CLIError as ex:
+                        # issue warning and skip loading extensions that aren't compatible with the CLI core
+                        logger.warning(ex)
+                        continue
                     ext_name = ext.name
                     ext_dir = ext.path or get_extension_path(ext_name)
                     sys.path.append(ext_dir)
@@ -219,9 +236,12 @@ class MainCommandsLoader(CLICommandsLoader):
         def _get_extension_suppressions(mod_loaders):
             res = []
             for m in mod_loaders:
-                sup = getattr(m, 'suppress_extension', None)
-                if sup and isinstance(sup, ModExtensionSuppress):
-                    res.append(sup)
+                suppressions = getattr(m, 'suppress_extension', None)
+                if suppressions:
+                    suppressions = suppressions if isinstance(suppressions, list) else [suppressions]
+                    for sup in suppressions:
+                        if isinstance(sup, ModExtensionSuppress):
+                            res.append(sup)
             return res
 
         _update_command_table_from_modules(args)
@@ -425,7 +445,7 @@ class AzCommandsLoader(CLICommandsLoader):  # pylint: disable=too-many-instance-
             from azure.cli.core.util import get_arg_list, augment_no_wait_handler_args
             from azure.cli.core.commands.client_factory import resolve_client_arg_name
 
-            op = handler or self.get_op_handler(operation)
+            op = handler or self.get_op_handler(operation, operation_group=kwargs.get('operation_group'))
             op_args = get_arg_list(op)
             cmd = command_args.get('cmd') if 'cmd' in op_args else command_args.pop('cmd')
 
@@ -441,13 +461,13 @@ class AzCommandsLoader(CLICommandsLoader):  # pylint: disable=too-many-instance-
             return op(**command_args)
 
         def default_arguments_loader():
-            op = handler or self.get_op_handler(operation)
+            op = handler or self.get_op_handler(operation, operation_group=kwargs.get('operation_group'))
             self._apply_doc_string(op, kwargs)
             cmd_args = list(extract_args_from_signature(op, excluded_params=self.excluded_command_handler_args))
             return cmd_args
 
         def default_description_loader():
-            op = handler or self.get_op_handler(operation)
+            op = handler or self.get_op_handler(operation, operation_group=kwargs.get('operation_group'))
             self._apply_doc_string(op, kwargs)
             return extract_full_summary_from_signature(op)
 
@@ -463,7 +483,7 @@ class AzCommandsLoader(CLICommandsLoader):  # pylint: disable=too-many-instance-
                                                         handler or default_command_handler,
                                                         **kwargs)
 
-    def get_op_handler(self, operation):
+    def get_op_handler(self, operation, operation_group=None):
         """ Import and load the operation handler """
         # Patch the unversioned sdk path to include the appropriate API version for the
         # resource type in question.
@@ -474,15 +494,10 @@ class AzCommandsLoader(CLICommandsLoader):  # pylint: disable=too-many-instance-
         from azure.cli.core.profiles._shared import get_versioned_sdk_path
 
         for rt in AZURE_API_PROFILES[self.cli_ctx.cloud.profile]:
-            if operation.startswith(rt.import_prefix + ".operations."):
-                subs = operation[len(rt.import_prefix + ".operations."):]
-                operation_group = subs[:subs.index('_operations')]
-                operation = operation.replace(
-                    rt.import_prefix,
-                    get_versioned_sdk_path(self.cli_ctx.cloud.profile, rt, operation_group=operation_group))
-            elif operation.startswith(rt.import_prefix):
+            if operation.startswith(rt.import_prefix):
                 operation = operation.replace(rt.import_prefix,
-                                              get_versioned_sdk_path(self.cli_ctx.cloud.profile, rt))
+                                              get_versioned_sdk_path(self.cli_ctx.cloud.profile, rt,
+                                                                     operation_group=operation_group))
 
         try:
             mod_to_import, attr_path = operation.split('#')

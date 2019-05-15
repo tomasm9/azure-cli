@@ -221,7 +221,7 @@ helps['ams asset-filter create'] = """
     examples:
         - name: Create an asset filter with filter track selections.
           text: >
-            az ams asset-filter create -a amsAccount -g resourceGroup -n filterName --force-end-timestamp=False --end-timestamp 200000 --start-timestamp 100000 --live-backoff-duration 60 --presentation-window-duration 600000 --timescale 1000 --bitrate 720 --asset-name assetName --tracks @C:\\tracks.json
+            az ams asset-filter create -a amsAccount -g resourceGroup -n filterName --force-end-timestamp=False --end-timestamp 200000 --start-timestamp 100000 --live-backoff-duration 60 --presentation-window-duration 600000 --timescale 1000 --first-quality 720 --asset-name assetName --tracks @C:\\tracks.json
 """
 
 helps['ams asset-filter update'] = """
@@ -419,6 +419,14 @@ helps['ams streaming-endpoint create'] = """
     short-summary: Create a streaming endpoint.
 """
 
+helps['ams streaming-endpoint wait'] = """
+    type: command
+    short-summary: Place the CLI in a waiting state until a condition of the streaming endpoint is met.
+    examples:
+        - name: Place the CLI in a waiting state until the streaming endpoint is created.
+          text: az ams streaming-endpoint wait -g MyResourceGroup -a MyAmsAccount -n MyStreamingEndpoint --created
+"""
+
 helps['ams streaming-endpoint akamai'] = """
     type: group
     short-summary: Manage AkamaiAccessControl objects to be used on streaming endpoints.
@@ -511,6 +519,14 @@ helps['ams live-event update'] = """
 
 """
 
+helps['ams live-event wait'] = """
+    type: command
+    short-summary: Place the CLI in a waiting state until a condition of the live event is met.
+    examples:
+        - name: Place the CLI in a waiting state until the live event is created.
+          text: az ams live-event wait -g MyResourceGroup -a MyAmsAccount -n MyLiveEvent --created
+"""
+
 helps['ams live-output'] = """
     type: group
     short-summary: Manage live outputs for an Azure Media Service account.
@@ -552,7 +568,7 @@ helps['ams account-filter create'] = """
     examples:
         - name: Create an asset filter with filter track selections.
           text: >
-            az ams account-filter create -a amsAccount -g resourceGroup -n filterName --force-end-timestamp=False --end-timestamp 200000 --start-timestamp 100000 --live-backoff-duration 60 --presentation-window-duration 600000 --timescale 1000 --bitrate 720 --tracks @C:\\tracks.json
+            az ams account-filter create -a amsAccount -g resourceGroup -n filterName --force-end-timestamp=False --end-timestamp 200000 --start-timestamp 100000 --live-backoff-duration 60 --presentation-window-duration 600000 --timescale 1000 --first-quality 720 --tracks @C:\\tracks.json
 """
 
 helps['ams account-filter update'] = """

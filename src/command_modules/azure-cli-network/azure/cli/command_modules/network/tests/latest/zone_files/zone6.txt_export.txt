@@ -1,8 +1,8 @@
 
 ; Exported zone file from Azure DNS
 ;      Zone name: zone6.com
-;      Resource Group Name: cli_dns_zone6_importrovamobsohtpz3mtiuuavemykjlkrtmksegz3x7rumwm3l2iyrw5wuh
-;      Date and time (UTC): Fri, 30 Nov 2018 14:45:19 -0800
+;      Resource Group Name: cli_dns_zone6_import000001
+;      Date and time (UTC): Mon, 13 May 2019 16:08:22 -0700
 
 $TTL 300
 $ORIGIN zone6.com.

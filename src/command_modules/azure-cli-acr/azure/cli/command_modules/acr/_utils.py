@@ -8,14 +8,16 @@ from knack.log import get_logger
 from knack.prompting import prompt_y_n, NoTTYException
 from azure.cli.core.commands.parameters import get_resources_in_subscription
 
-from azure.mgmt.containerregistry.v2018_09_01.models import SkuName, Sku
-
 from ._constants import (
     REGISTRY_RESOURCE_TYPE,
     ACR_RESOURCE_PROVIDER,
     STORAGE_RESOURCE_TYPE,
-    MANAGED_REGISTRY_SKU,
-    CLASSIC_REGISTRY_SKU
+    get_classic_sku,
+    get_managed_sku,
+    get_premium_sku,
+    get_valid_os,
+    get_valid_architecture,
+    get_valid_variant
 )
 from ._client_factory import (
     get_arm_service_client,
@@ -43,7 +45,8 @@ def _arm_get_resource_by_name(cli_ctx, resource_name, resource_type):
             subscription = profile.get_subscription(cli_ctx.data['subscription_id'])
             raise ResourceNotFound(
                 "{} in subscription '{} ({})'.".format(message, subscription['name'], subscription['id']))
-        except (KeyError, TypeError):
+        except (KeyError, TypeError) as e:
+            logger.debug("Could not get the current subscription. Exception: %s", str(e))
             raise ResourceNotFound("{} in the current subscription.".format(message))
 
     elif len(elements) == 1:
@@ -54,7 +57,7 @@ def _arm_get_resource_by_name(cli_ctx, resource_name, resource_type):
                 resource_type, resource_name))
 
 
-def get_resource_group_name_by_resource_id(resource_id):
+def _get_resource_group_name_by_resource_id(resource_id):
     """Returns the resource group name from parsing the resource id.
     :param str resource_id: The resource id
     """
@@ -72,7 +75,7 @@ def get_resource_group_name_by_registry_name(cli_ctx, registry_name,
     """
     if not resource_group_name:
         arm_resource = _arm_get_resource_by_name(cli_ctx, registry_name, REGISTRY_RESOURCE_TYPE)
-        resource_group_name = get_resource_group_name_by_resource_id(arm_resource.id)
+        resource_group_name = _get_resource_group_name_by_resource_id(arm_resource.id)
     return resource_group_name
 
 
@@ -256,56 +259,57 @@ def random_storage_account_name(cli_ctx, registry_name):
     raise CLIError("Could not find an available storage account name. Please try again later.")
 
 
-def validate_managed_registry(cli_ctx, registry_name, resource_group_name=None, message=None):
+def validate_managed_registry(cmd, registry_name, resource_group_name=None, message=None):
     """Raise CLIError if the registry in not in Managed SKU.
     :param str registry_name: The name of container registry
     :param str resource_group_name: The name of resource group
     """
-    registry, resource_group_name = get_registry_by_name(cli_ctx, registry_name, resource_group_name)
+    registry, resource_group_name = get_registry_by_name(cmd.cli_ctx, registry_name, resource_group_name)
 
-    if not registry.sku or registry.sku.name not in MANAGED_REGISTRY_SKU:
+    if not registry.sku or registry.sku.name not in get_managed_sku(cmd):
         raise CLIError(message or "This operation is only supported for managed registries.")
 
     return registry, resource_group_name
 
 
-def validate_premium_registry(cli_ctx, registry_name, resource_group_name=None, message=None):
+def validate_premium_registry(cmd, registry_name, resource_group_name=None, message=None):
     """Raise CLIError if the registry in not in Premium SKU.
     :param str registry_name: The name of container registry
     :param str resource_group_name: The name of resource group
     """
-    registry, resource_group_name = get_registry_by_name(cli_ctx, registry_name, resource_group_name)
+    registry, resource_group_name = get_registry_by_name(cmd.cli_ctx, registry_name, resource_group_name)
 
-    if not registry.sku or registry.sku.name != SkuName.premium.value:
+    if not registry.sku or registry.sku.name not in get_premium_sku(cmd):
         raise CLIError(message or "This operation is only supported for managed registries in Premium SKU.")
 
     return registry, resource_group_name
 
 
-def validate_sku_update(current_sku, sku_parameter):
+def validate_sku_update(cmd, current_sku, sku_parameter):
     """Validates a registry SKU update parameter.
     :param object sku_parameter: The registry SKU update parameter
     """
     if sku_parameter is None:
         return
 
+    Sku = cmd.get_models('Sku')
     if isinstance(sku_parameter, dict):
         if 'name' not in sku_parameter:
-            _invalid_sku_update()
-        if sku_parameter['name'] not in CLASSIC_REGISTRY_SKU and sku_parameter['name'] not in MANAGED_REGISTRY_SKU:
-            _invalid_sku_update()
-        if current_sku in MANAGED_REGISTRY_SKU and sku_parameter['name'] in CLASSIC_REGISTRY_SKU:
+            _invalid_sku_update(cmd)
+        if sku_parameter['name'] not in get_classic_sku(cmd) and sku_parameter['name'] not in get_managed_sku(cmd):
+            _invalid_sku_update(cmd)
+        if current_sku in get_managed_sku(cmd) and sku_parameter['name'] in get_classic_sku(cmd):
             _invalid_sku_downgrade()
     elif isinstance(sku_parameter, Sku):
-        if current_sku in MANAGED_REGISTRY_SKU and sku_parameter.name in CLASSIC_REGISTRY_SKU:
+        if current_sku in get_managed_sku(cmd) and sku_parameter.name in get_classic_sku(cmd):
             _invalid_sku_downgrade()
     else:
-        _invalid_sku_update()
+        _invalid_sku_update(cmd)
 
 
-def _invalid_sku_update():
+def _invalid_sku_update(cmd):
     raise CLIError("Please specify SKU by '--sku SKU' or '--set sku.name=SKU'. Allowed SKUs: {0}".format(
-        MANAGED_REGISTRY_SKU))
+        get_managed_sku(cmd)))
 
 
 def _invalid_sku_downgrade():
@@ -320,6 +324,140 @@ def user_confirmation(message, yes=False):
             raise CLIError('Operation cancelled.')
     except NoTTYException:
         raise CLIError('Unable to prompt for confirmation as no tty available. Use --yes.')
+
+
+def get_validate_platform(cmd, os_type, platform):
+    """Gets and validates the Platform from both flags
+    :param str os_type: The name of OS passed by user in --os flag
+    :param str platform: The name of Platform passed by user in --platform flag
+    """
+    OS, Architecture = cmd.get_models('OS', 'Architecture')
+    # Defaults
+    platform_os = OS.linux.value
+    platform_arch = Architecture.amd64.value
+    platform_variant = None
+
+    if platform:
+        platform_split = platform.split('/')
+        platform_os = platform_split[0]
+        platform_arch = platform_split[1] if len(platform_split) > 1 else Architecture.amd64.value
+        platform_variant = platform_split[2] if len(platform_split) > 2 else None
+
+    if os_type and platform:
+        if os_type.lower() != platform_os.lower():
+            raise CLIError("The OS in '--platform' should exactly match the value provided in '--os'.")
+    elif os_type:
+        platform_os = os_type
+
+    platform_os = platform_os.lower()
+    platform_arch = platform_arch.lower()
+
+    valid_os = get_valid_os(cmd)
+    valid_arch = get_valid_architecture(cmd)
+    valid_variant = get_valid_variant(cmd)
+
+    if platform_os not in valid_os:
+        raise CLIError(
+            "'{0}' is not a valid value for OS specified in --os or --platform. "
+            "Valid options are {1}.".format(platform_os, ','.join(valid_os))
+        )
+    if platform_arch not in valid_arch:
+        raise CLIError(
+            "'{0}' is not a valid value for Architecture specified in --platform. "
+            "Valid options are {1}.".format(platform_arch, ','.join(valid_arch))
+        )
+    if platform_variant and (platform_variant not in valid_variant):
+        raise CLIError(
+            "'{0}' is not a valid value for Variant specified in --platform. "
+            "Valid options are {1}.".format(platform_variant, ','.join(valid_variant))
+        )
+
+    return platform_os, platform_arch, platform_variant
+
+
+def get_yaml_and_values(cmd_value, timeout, file):
+    """Generates yaml template and its value content if applicable
+    :param str cmd_value: The command to execute in each step
+    :param str timeout: The timeout for each step
+    :param str file: The task definition
+    """
+    yaml_template = ""
+    values_content = ""
+    if cmd_value:
+        yaml_template = "steps: \n  - cmd: {{ .Values.command }}\n"
+        values_content = "command: {0}\n".format(cmd_value)
+        if timeout:
+            yaml_template += "    timeout: {{ .Values.timeout }}\n"
+            values_content += "timeout: {0}\n".format(timeout)
+    else:
+        if not file:
+            file = "acb.yaml"
+
+        if file == "-":
+            import sys
+            for s in sys.stdin.readlines():
+                yaml_template += s
+        else:
+            import os
+            if os.path.exists(file):
+                f = open(file, 'r')
+                for line in f:
+                    yaml_template += line
+            else:
+                raise CLIError("{0} does not exist.".format(file))
+
+    if not yaml_template:
+        raise CLIError("Failed to initialize yaml template.")
+
+    return yaml_template, values_content
+
+
+def get_custom_registry_credentials(cmd, auth_mode=None, login_server=None, username=None, password=None):
+    """Get the credential object from the input
+    :param str auth_mode: The login mode for the source registry
+    :param str login_server: The login server of custom registry
+    :param str username: The username for custom registry
+    :param str password: The password for custom registry
+    """
+    source_registry_credentials = None
+    if auth_mode:
+        SourceRegistryCredentials = cmd.get_models('SourceRegistryCredentials')
+        source_registry_credentials = SourceRegistryCredentials(login_mode=auth_mode)
+
+    custom_registries = None
+    if login_server:
+        CustomRegistryCredentials, SecretObject, SecretObjectType = cmd.get_models(
+            'CustomRegistryCredentials',
+            'SecretObject',
+            'SecretObjectType'
+        )
+
+        # if Null username and password, then have it removed
+        custom_reg_credential = None
+        if (username and not password) or (password and not username):
+            raise CLIError("Please provide both username and password.")
+        elif username and password:
+            custom_reg_credential = CustomRegistryCredentials(
+                user_name=SecretObject(
+                    type=SecretObjectType.opaque,
+                    value=username
+                ),
+                password=SecretObject(
+                    type=SecretObjectType.opaque,
+                    value=password
+                )
+            )
+        elif username is not None or password is not None:
+            # case where user passes empty strings: -u '' -p ''
+            raise CLIError("username and password cannot be empty")
+
+        custom_registries = {login_server: custom_reg_credential}
+
+    Credentials = cmd.get_models('Credentials')
+    return Credentials(
+        source_registry=source_registry_credentials,
+        custom_registries=custom_registries
+    )
 
 
 class ResourceNotFound(CLIError):

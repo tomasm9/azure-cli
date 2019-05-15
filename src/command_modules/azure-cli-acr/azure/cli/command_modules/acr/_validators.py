@@ -3,6 +3,8 @@
 # Licensed under the MIT License. See License.txt in the project root for license information.
 # --------------------------------------------------------------------------------------------
 
+import os
+
 
 def validate_headers(namespace):
     """Extracts multiple space-separated headers in key[=value] format. """
@@ -20,32 +22,6 @@ def validate_header(string):
         comps = string.split('=', 1)
         result = {comps[0]: comps[1]} if len(comps) > 1 else {string: ''}
     return result
-
-
-def validate_build_arg(namespace):
-    if isinstance(namespace.build_arg, list):
-        build_arguments_list = []
-        for item in namespace.build_arg:
-            build_arguments_list.append(validate_build_argument(item, False))
-        namespace.build_arg = build_arguments_list
-
-
-def validate_secret_build_arg(namespace):
-    if isinstance(namespace.secret_build_arg, list):
-        build_arguments_list = []
-        for item in namespace.secret_build_arg:
-            build_arguments_list.append(validate_build_argument(item, True))
-        namespace.secret_build_arg = build_arguments_list
-
-
-def validate_build_argument(string, is_secret):
-    """Extracts a single build argument in key[=value] format. """
-    if string:
-        comps = string.split('=', 1)
-        if len(comps) > 1:
-            return {'type': 'DockerBuildArgument', 'name': comps[0], 'value': comps[1], 'isSecret': is_secret}
-        return {'type': 'DockerBuildArgument', 'name': comps[0], 'value': '', 'isSecret': is_secret}
-    return None
 
 
 def validate_arg(namespace):
@@ -96,5 +72,9 @@ def validate_task_argument(string, is_secret):
         comps = string.split('=', 1)
         if len(comps) > 1:
             return {'type': 'Argument', 'name': comps[0], 'value': comps[1], 'isSecret': is_secret}
+        # If no value, check if the argument exists as an environment variable
+        local_value = os.environ.get(comps[0])
+        if local_value is not None:
+            return {'type': 'Argument', 'name': comps[0], 'value': local_value, 'isSecret': is_secret}
         return {'type': 'Argument', 'name': comps[0], 'value': '', 'isSecret': is_secret}
     return None

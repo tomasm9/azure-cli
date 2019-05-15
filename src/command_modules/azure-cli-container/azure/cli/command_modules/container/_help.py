@@ -20,7 +20,6 @@ helps['container create'] = """
           text: az container create -g MyResourceGroup --name myapp --image myimage:latest --cpu 1 --memory 1
         - name: Create a container in a container group that runs Windows, with 2 cores and 3.5Gb of memory.
           text: az container create -g MyResourceGroup --name mywinapp --image winappimage:latest --os-type Windows --cpu 2 --memory 3.5
-          text: az container create -g MyResourceGroup --name myapp --image myimage:latest --ip-address public --ports 8081 --protocol UDP
         - name: Create a container in a container group with public IP address, ports and DNS name label.
           text: az container create -g MyResourceGroup --name myapp --image myimage:latest --ports 80 443 --dns-name-label contoso
         - name: Create a container in a container group that invokes a script upon start.
@@ -47,7 +46,7 @@ helps['container create'] = """
           text: az container create -g MyResourceGroup --name myapp --image myimage:latest --assign-identity  /subscriptions/mySubscrpitionId/resourcegroups/myRG/providers/Microsoft.ManagedIdentity/userAssignedIdentities/myID
         - name: Create a container group with both system and user assigned identity.
           text: az container create -g MyResourceGroup --name myapp --image myimage:latest --assign-identity [system] /subscriptions/mySubscrpitionId/resourcegroups/myRG/providers/Microsoft.ManagedIdentity/userAssignedIdentities/myID
-          min_profile: latest
+          supported-profiles: latest
 """
 
 helps['container delete'] = """

@@ -4,18 +4,23 @@
 # --------------------------------------------------------------------------------------------
 
 from azure.cli.core.commands import CliCommandType
-from ._client_factory import (policy_events_operations, policy_states_operations)
+from ._client_factory import (policy_events_operations, policy_states_operations, policy_remediations_operations)
 from ._exception_handler import policy_insights_exception_handler
 
 
 def load_command_table(self, _):
     policy_events_sdk = CliCommandType(
-        operations_tmpl='azure.mgmt.policyinsights.operations.policy_events_operations#PolicyEventsOperations.{}',
+        operations_tmpl='azure.mgmt.policyinsights.operations#PolicyEventsOperations.{}',
         exception_handler=policy_insights_exception_handler
     )
 
     policy_states_sdk = CliCommandType(
-        operations_tmpl='azure.mgmt.policyinsights.operations.policy_states_operations#PolicyStatesOperations.{}',
+        operations_tmpl='azure.mgmt.policyinsights.operations#PolicyStatesOperations.{}',
+        exception_handler=policy_insights_exception_handler
+    )
+
+    policy_remediations_sdk = CliCommandType(
+        operations_tmpl='azure.mgmt.policyinsights.operations#RemediationsOperations.{}',
         exception_handler=policy_insights_exception_handler
     )
 
@@ -25,3 +30,15 @@ def load_command_table(self, _):
     with self.command_group('policy state', policy_states_sdk, client_factory=policy_states_operations) as g:
         g.custom_command('list', 'list_policy_states')
         g.custom_command('summarize', 'summarize_policy_states')
+
+    with self.command_group('policy remediation', policy_remediations_sdk,
+                            client_factory=policy_remediations_operations) as g:
+        g.custom_show_command('show', 'get_policy_remediation')
+        g.custom_command('list', 'list_policy_remediations')
+        g.custom_command('delete', 'delete_policy_remediation')
+        g.custom_command('cancel', 'cancel_policy_remediation')
+        g.custom_command('create', 'create_policy_remediation')
+
+    with self.command_group('policy remediation deployment', policy_remediations_sdk,
+                            client_factory=policy_remediations_operations) as g:
+        g.custom_command('list', 'list_policy_remediation_deployments')

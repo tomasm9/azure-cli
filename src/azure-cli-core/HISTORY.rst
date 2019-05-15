@@ -2,6 +2,46 @@
 
 Release History
 ===============
+* auth: polish common AAD service errors with actionables to overcome
+* Fixed issue where the CLI would load extensions that were not compatible with its core version.
+* Fix issue if clouds.config is corrupt
+
+2.0.64
+++++++
+* Upgrade to knack 0.6.1
+
+2.0.63
+++++++
+* Minor fixes
+
+2.0.62
+++++++
+* Fix issue where some extensions showed a version of "Unknown" and could not be updated.
+
+2.0.61
+++++++
+* Fix issues with dev extension incompatibility.
+* Error handling now points customers to issues page.
+
+2.0.60
+++++++
+* cloud set: fix a bogus error about subscription not found
+
+2.0.59
+++++++
+* Fix issue where in some instances using `--subscription NAME` would throw an exception.
+
+2.0.58
+++++++
+* `az --version` now displays a notification if you have packages that can be updated.
+* Fixes regression where `--ids` could no longer be used with JSON output.
+
+2.0.57
+++++++
+* Hot fix for issue 8399_.
+
+.. _8399: https://github.com/Azure/azure-cli/issues/8399
+
 2.0.56
 ++++++
 * auth: enable tenant level account for managed service identity

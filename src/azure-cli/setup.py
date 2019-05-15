@@ -8,14 +8,16 @@
 from __future__ import print_function
 from codecs import open
 from setuptools import setup
+
 try:
     from azure_bdist_wheel import cmdclass
 except ImportError:
     from distutils import log as logger
+
     logger.warn("Wheel is not available, disabling bdist_wheel hook")
     cmdclass = {}
 
-VERSION = "2.0.56"
+VERSION = "2.0.64"
 # If we have source, validate that our version numbers match
 # This should prevent uploading releases with mismatched versions.
 try:
@@ -26,6 +28,7 @@ except OSError:
 else:
     import re
     import sys
+
     m = re.search(r'__version__\s*=\s*[\'"](.+?)[\'"]', content)
     if not m:
         print('Could not find __version__ in azure/cli/__init__.py')
@@ -62,11 +65,13 @@ DEPENDENCIES = [
     'azure-cli-cdn',
     'azure-cli-cloud',
     'azure-cli-cognitiveservices',
+    'azure-cli-command_modules-nspkg',
     'azure-cli-configure',
     'azure-cli-consumption',
     'azure-cli-container',
     'azure-cli-core',
     'azure-cli-cosmosdb',
+    'azure-cli-deploymentmanager',
     'azure-cli-dla',
     'azure-cli-dls',
     'azure-cli-dms',
@@ -80,12 +85,14 @@ DEPENDENCIES = [
     'azure-cli-iot',
     'azure-cli-iotcentral',
     'azure-cli-keyvault',
+    'azure-cli-kusto',
     'azure-cli-lab',
     'azure-cli-maps',
     'azure-cli-monitor',
     'azure-cli-network',
     'azure-cli-nspkg',
     'azure-cli-policyinsights',
+    'azure-cli-privatedns',
     'azure-cli-profile',
     'azure-cli-rdbms',
     'azure-cli-redis',
@@ -94,12 +101,15 @@ DEPENDENCIES = [
     'azure-cli-resource',
     'azure-cli-role',
     'azure-cli-search',
+    'azure-cli-security',
     'azure-cli-servicebus',
     'azure-cli-servicefabric',
     'azure-cli-signalr',
     'azure-cli-sql',
+    'azure-cli-sqlvm',
     'azure-cli-storage',
-    'azure-cli-vm'
+    'azure-cli-telemetry',
+    'azure-cli-vm',
 ]
 
 with open('README.rst', 'r', encoding='utf-8') as f:

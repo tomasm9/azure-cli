@@ -1,8 +1,8 @@
 
 ; Exported zone file from Azure DNS
 ;      Zone name: zone3.com
-;      Resource Group Name: cli_dns_zone3_import47yxpffl7r6ywneuqle7bnq63wxbqtbpfrp6e4vlkxi3jd3d7d4xcei
-;      Date and time (UTC): Fri, 30 Nov 2018 14:34:28 -0800
+;      Resource Group Name: cli_dns_zone3_import000001
+;      Date and time (UTC): Mon, 13 May 2019 16:08:22 -0700
 
 $TTL 10800
 $ORIGIN zone3.com.
@@ -47,6 +47,8 @@ test-a 3600 IN A 1.2.3.4
 test-aaaa 3600 IN AAAA 2001:cafe:130::100
 
 test-cname 3600 IN CNAME target.com.
+
+test-cname2 3600 IN CNAME target.org.zone3.com.
 
 test-mx 3600 IN MX 10 mail.com.
 
