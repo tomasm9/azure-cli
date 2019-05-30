@@ -70,18 +70,6 @@ class AzureNetAppFilesAccountServiceScenarioTest(ScenarioTest):
         assert account_from_id['name'] == account_name
 
     @ResourceGroupPreparer(name_prefix='cli_tests_rg_')
-    def test_set_account(self):
-        # only tags are checked here due to complications of active directory in automated test
-        account_name = self.create_random_name(prefix='cli', length=24)
-        tag = "Tag1=Value1"
-
-        account = self.cmd("az netappfiles account create -g {rg} -a %s -l %s" % (account_name, LOCATION)).get_output_in_json()
-        account = self.cmd("az netappfiles account set --resource-group {rg} -a %s -l %s --tags %s" % (account_name, LOCATION, tag)).get_output_in_json()
-        assert account['name'] == account_name
-        assert account['tags']['Tag1'] == 'Value1'
-        assert account['activeDirectories'] is None
-
-    @ResourceGroupPreparer(name_prefix='cli_tests_rg_')
     def test_update_account(self):
         # only tags are checked here due to complications of active directory in automated test
         account_name = self.create_random_name(prefix='cli', length=24)
