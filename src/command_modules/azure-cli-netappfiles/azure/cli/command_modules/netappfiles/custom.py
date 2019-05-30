@@ -29,8 +29,8 @@ def _update_mapper(existing, new, keys):
 
 
 # pylint: disable=unused-argument
-# account update, active_directory is amended with subgroup commands
-def create_account(cmd, instance, client, account_name, resource_group_name, location, tags=None):
+# account update - active_directory is amended with subgroup commands
+def create_account(cmd, client, account_name, resource_group_name, location, tags=None):
     body = NetAppAccount(location=location, tags=tags)
     return client.create_or_update(body, resource_group_name, account_name)
 
