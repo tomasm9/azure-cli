@@ -38,7 +38,6 @@ class AzureNetAppFilesExtVolumeServiceScenarioTest(ScenarioTest):
 
         return volume1
 
-
     @ResourceGroupPreparer(name_prefix='cli_tests_rg')
     def test_create_delete_volumes(self):
         account_name = self.create_random_name(prefix='cli-acc-', length=24)
@@ -114,7 +113,6 @@ class AzureNetAppFilesExtVolumeServiceScenarioTest(ScenarioTest):
         assert not volume['exportPolicy']['rules'][0]['cifs']
         assert volume['exportPolicy']['rules'][0]['ruleIndex'] == 1
 
-
     # cannot test export policy (or active directory) due to unknown issue where the export policy params are interpreted as unexpected kwargs
     # tested manually at command line but leaving this tet in for now
     @ResourceGroupPreparer(name_prefix='cli_tests_rg')
@@ -132,5 +130,5 @@ class AzureNetAppFilesExtVolumeServiceScenarioTest(ScenarioTest):
         volume = self.cmd("az netappfiles volume update --resource-group {rg} -a %s -p %s -v %s --export-policy %s" % (account_name, pool_name, volume_name, export_policy)).get_output_in_json()
         assert volume['name'] == account_name + '/' + pool_name + '/' + volume_name
         assert volume['exportPolicy']['rules'][0]['allowedClients'] == '1.2.3.0/24'
-        #assert not volume['exportPolicy']['rules'][0]['cifs']
-        #assert volume['exportPolicy']['rules'][0]['ruleIndex'] == 1
+        # assert not volume['exportPolicy']['rules'][0]['cifs']
+        # assert volume['exportPolicy']['rules'][0]['ruleIndex'] == 1
