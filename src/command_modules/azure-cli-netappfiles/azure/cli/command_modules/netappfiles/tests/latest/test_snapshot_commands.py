@@ -5,15 +5,16 @@
 
 from azure.cli.testsdk import ScenarioTest, ResourceGroupPreparer
 
-POOL_DEFAULT = "--service-level 'Premium' --size 4398046511104"
-VOLUME_DEFAULT = "--service-level 'Premium' --usage-threshold 107374182400"
+POOL_DEFAULT = "--service-level 'Premium' --size 4"
+VOLUME_DEFAULT = "--service-level 'Premium' --usage-threshold 100"
+LOCATION = "eastus2"
 
 # No tidy up of tests required. The resource group is automatically removed
 
 
 class AzureNetAppFilesSnapshotServiceScenarioTest(ScenarioTest):
     def setup_vnet(self, rg, vnet_name, subnet_name):
-        self.cmd("az network vnet create -n %s --resource-group %s -l westcentralus --address-prefix 10.5.0.0/16" % (vnet_name, rg))
+        self.cmd("az network vnet create -n %s --resource-group %s -l %s --address-prefix 10.5.0.0/16" % (vnet_name, rg, LOCATION))
         self.cmd("az network vnet subnet create -n %s --vnet-name %s --address-prefixes '10.5.0.0/24' --delegations 'Microsoft.Netapp/volumes' -g %s" % (subnet_name, vnet_name, rg))
 
     def current_subscription(self):
@@ -23,14 +24,14 @@ class AzureNetAppFilesSnapshotServiceScenarioTest(ScenarioTest):
     def create_volume(self, account_name, pool_name, volume_name1, rg, tags=None):
         vnet_name = self.create_random_name(prefix='cli-vnet-', length=24)
         creation_token = volume_name1
-        subnet_name = "subnet02"
-        subnet_id = "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s" % (self.current_subscription(), rg, vnet_name, subnet_name)
-        tag = "--tags '%s'" % tags if tags is not None else ""
+        vnet_name = "cli-vnet-lefr-02"
+        subnet_name = "cli-subnet-lefr-02"
+        tag = "--tags %s" % tags if tags is not None else ""
 
         self.setup_vnet(rg, vnet_name, subnet_name)
-        self.cmd("netappfiles account create -g %s -a '%s' -l 'westcentralus'" % (rg, account_name)).get_output_in_json()
-        self.cmd("netappfiles pool create -g %s -a %s -p %s -l 'westcentralus' %s %s" % (rg, account_name, pool_name, POOL_DEFAULT, tag)).get_output_in_json()
-        volume1 = self.cmd("netappfiles volume create --resource-group %s --account-name %s --pool-name %s --volume-name %s -l 'westcentralus' %s --creation-token %s --subnet-id %s %s" % (rg, account_name, pool_name, volume_name1, VOLUME_DEFAULT, creation_token, subnet_id, tag)).get_output_in_json()
+        self.cmd("netappfiles account create -g %s -a '%s' -l %s" % (rg, account_name, LOCATION)).get_output_in_json()
+        self.cmd("netappfiles pool create -g %s -a %s -p %s -l %s %s %s" % (rg, account_name, pool_name, LOCATION, POOL_DEFAULT, tag)).get_output_in_json()
+        volume1 = self.cmd("netappfiles volume create --resource-group %s --account-name %s --pool-name %s --volume-name %s -l %s %s --creation-token %s --vnet %s --subnet %s %s" % (rg, account_name, pool_name, volume_name1, LOCATION, VOLUME_DEFAULT, creation_token, vnet_name, subnet_name, tag)).get_output_in_json()
 
         return volume1
 
@@ -43,7 +44,7 @@ class AzureNetAppFilesSnapshotServiceScenarioTest(ScenarioTest):
         rg = '{rg}'
 
         volume = self.create_volume(account_name, pool_name, volume_name, rg)
-        snapshot = self.cmd("az netappfiles snapshot create -g %s -a %s -p %s -v %s -s %s -l 'westcentralus' --file-system-id %s" % (rg, account_name, pool_name, volume_name, snapshot_name, volume['fileSystemId'])).get_output_in_json()
+        snapshot = self.cmd("az netappfiles snapshot create -g %s -a %s -p %s -v %s -s %s -l %s --file-system-id %s" % (rg, account_name, pool_name, volume_name, snapshot_name, LOCATION, volume['fileSystemId'])).get_output_in_json()
         assert snapshot['name'] == account_name + '/' + pool_name + '/' + volume_name + '/' + snapshot_name
 
         snapshot_list = self.cmd("az netappfiles snapshot list --resource-group %s --account-name %s --pool-name %s --volume-name %s" % (rg, account_name, pool_name, volume_name)).get_output_in_json()
@@ -61,8 +62,8 @@ class AzureNetAppFilesSnapshotServiceScenarioTest(ScenarioTest):
         snapshot_name1 = self.create_random_name(prefix='cli-sn-', length=24)
         snapshot_name2 = self.create_random_name(prefix='cli-sn-', length=24)
         volume = self.create_volume(account_name, pool_name, volume_name, '{rg}')
-        self.cmd("az netappfiles snapshot create -g {rg} -a %s -p %s -v %s -s %s -l 'westcentralus' --file-system-id %s" % (account_name, pool_name, volume_name, snapshot_name1, volume['fileSystemId'])).get_output_in_json()
-        self.cmd("az netappfiles snapshot create -g {rg} -a %s -p %s -v %s -s %s -l 'westcentralus' --file-system-id %s" % (account_name, pool_name, volume_name, snapshot_name2, volume['fileSystemId'])).get_output_in_json()
+        self.cmd("az netappfiles snapshot create -g {rg} -a %s -p %s -v %s -s %s -l %s --file-system-id %s" % (account_name, pool_name, volume_name, snapshot_name1, LOCATION, volume['fileSystemId'])).get_output_in_json()
+        self.cmd("az netappfiles snapshot create -g {rg} -a %s -p %s -v %s -s %s -l %s --file-system-id %s" % (account_name, pool_name, volume_name, snapshot_name2, LOCATION, volume['fileSystemId'])).get_output_in_json()
 
         snapshot_list = self.cmd("az netappfiles snapshot list -g {rg} -a %s -p %s -v %s" % (account_name, pool_name, volume_name)).get_output_in_json()
         assert len(snapshot_list) == 2
@@ -74,7 +75,7 @@ class AzureNetAppFilesSnapshotServiceScenarioTest(ScenarioTest):
         volume_name = self.create_random_name(prefix='cli-vol-', length=24)
         snapshot_name = self.create_random_name(prefix='cli-sn-', length=24)
         volume = self.create_volume(account_name, pool_name, volume_name, '{rg}')
-        snapshot = self.cmd("az netappfiles snapshot create -g {rg} -a %s -p %s -v %s -s %s -l 'westcentralus' --file-system-id %s" % (account_name, pool_name, volume_name, snapshot_name, volume['fileSystemId'])).get_output_in_json()
+        snapshot = self.cmd("az netappfiles snapshot create -g {rg} -a %s -p %s -v %s -s %s -l %s --file-system-id %s" % (account_name, pool_name, volume_name, snapshot_name, LOCATION, volume['fileSystemId'])).get_output_in_json()
 
         snapshot = self.cmd("az netappfiles snapshot show -g {rg} -a %s -p %s -v %s -s %s" % (account_name, pool_name, volume_name, snapshot_name)).get_output_in_json()
         assert snapshot['name'] == account_name + '/' + pool_name + '/' + volume_name + '/' + snapshot_name

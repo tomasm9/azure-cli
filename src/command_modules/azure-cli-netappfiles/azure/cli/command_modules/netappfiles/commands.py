@@ -46,15 +46,12 @@ def load_command_table(self, _):
         exception_handler=netappfiles_exception_handler
     )
 
+
     with self.command_group('netappfiles account', netappfiles_accounts_sdk) as g:
         g.show_command('show', 'get')
         g.command('list', 'list')
         g.command('delete', 'delete')
         g.custom_command('create', 'create_account',
-                         client_factory=accounts_mgmt_client_factory,
-                         doc_string_source='azure.mgmt.netapp.models#NetAppAccount',
-                         exception_handler=netappfiles_exception_handler)
-        g.custom_command('set', 'update_account',
                          client_factory=accounts_mgmt_client_factory,
                          doc_string_source='azure.mgmt.netapp.models#NetAppAccount',
                          exception_handler=netappfiles_exception_handler)
@@ -64,6 +61,23 @@ def load_command_table(self, _):
                                  setter_arg_name='body',
                                  doc_string_source='azure.mgmt.netapp.models#NetAppAccountPatch',
                                  exception_handler=netappfiles_exception_handler)
+
+    with self.command_group('netappfiles account active-directory', netappfiles_accounts_sdk) as g:
+        g.generic_update_command('add',
+                                 setter_name='update',
+                                 custom_func_name='add_active_directory',
+                                 setter_arg_name='body',
+                                 doc_string_source='azure.mgmt.netapp.models#NetAppAccountPatch',
+                                 exception_handler=netappfiles_exception_handler)
+        g.custom_command('list', 'list_active_directories',
+                         client_factory=accounts_mgmt_client_factory,
+                         doc_string_source='azure.mgmt.netapp.models#NetAppAccount',
+                         exception_handler=netappfiles_exception_handler)
+
+        g.custom_command('remove', 'remove_active_directory',
+                         client_factory=accounts_mgmt_client_factory,
+                         doc_string_source='azure.mgmt.netapp.models#NetAppAccount',
+                         exception_handler=netappfiles_exception_handler)
 
     with self.command_group('netappfiles pool', netappfiles_pools_sdk) as g:
         g.show_command('show', 'get')
@@ -91,6 +105,24 @@ def load_command_table(self, _):
         g.generic_update_command('update',
                                  setter_name='update',
                                  custom_func_name='patch_volume',
+                                 setter_arg_name='body',
+                                 doc_string_source='azure.mgmt.netapp.models#VolumePatch',
+                                 exception_handler=netappfiles_exception_handler)
+
+    with self.command_group('netappfiles volume export-policy', netappfiles_volumes_sdk) as g:
+        g.generic_update_command('add',
+                                 setter_name='update',
+                                 custom_func_name='add_export_policy_rule',
+                                 setter_arg_name='body',
+                                 doc_string_source='azure.mgmt.netapp.models#VolumePatch',
+                                 exception_handler=netappfiles_exception_handler)
+        g.custom_command('list', 'list_export_policy_rules',
+                         client_factory=volumes_mgmt_client_factory,
+                         doc_string_source='azure.mgmt.netapp.models#Volume',
+                         exception_handler=netappfiles_exception_handler)
+        g.generic_update_command('remove',
+                                 setter_name='update',
+                                 custom_func_name='remove_export_policy_rule',
                                  setter_arg_name='body',
                                  doc_string_source='azure.mgmt.netapp.models#VolumePatch',
                                  exception_handler=netappfiles_exception_handler)

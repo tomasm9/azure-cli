@@ -4,17 +4,19 @@
 # --------------------------------------------------------------------------------------------
 
 # pylint: disable=line-too-long
+from azure.cli.core.commands.parameters import tags_type
 
 
 def load_arguments(self, _):
     with self.argument_context('netappfiles') as c:
         c.argument('resource_group', options_list=['--resource-group', '-g'], required=True, help='The name of the resource group')
+        c.argument('tags', arg_type=tags_type)
 
     with self.argument_context('netappfiles') as c:
         c.argument('account_name', options_list=['--account-name', '-a'], required=True, help='The name of the ANF account')
 
     with self.argument_context('netappfiles account') as c:
-        c.argument('account_name', id_part='name', options_list=['--account-name', '-n', '-a'], required=True, help='The name of the ANF account')
+        c.argument('account_name', id_part='name', options_list=['--account-name', '--name', '-n', '-a'], required=True, help='The name of the ANF account')
 
     with self.argument_context('netappfiles account list') as c:
         c.argument('account_name', help='The name of the ANF account', id_part=None)
@@ -24,10 +26,10 @@ def load_arguments(self, _):
 
     with self.argument_context('netappfiles pool') as c:
         c.argument('account_name', id_part='name')
-        c.argument('pool_name', id_part='child_name_1', options_list=['--pool-name', '-n', '-p'], required=True, help='The name of the ANF pool')
+        c.argument('pool_name', id_part='child_name_1', options_list=['--pool-name', '--name', '-n', '-p'], required=True, help='The name of the ANF pool')
 
     with self.argument_context('netappfiles pool list') as c:
-        c.argument('account_name', options_list=['--account-name', '-n', '-a'], help='The name of the ANF account', id_part=None)
+        c.argument('account_name', options_list=['--account-name', '--name', '-n', '-a'], help='The name of the ANF account', id_part=None)
 
     with self.argument_context('netappfiles') as c:
         c.argument('volume_name', options_list=['--volume-name', '-v'], required=True, help='The name of the ANF volume')
@@ -35,7 +37,7 @@ def load_arguments(self, _):
     with self.argument_context('netappfiles volume') as c:
         c.argument('account_name', id_part='name')
         c.argument('pool_name', id_part='child_name_1', options_list=['--pool-name', '-p'], required=True, help='The name of the ANF pool')
-        c.argument('volume_name', id_part='child_name_2', options_list=['--volume-name', '-n', '-v'], required=True, help='The name of the ANF volume')
+        c.argument('volume_name', id_part='child_name_2', options_list=['--volume-name', '--name', '-n', '-v'], required=True, help='The name of the ANF volume')
 
     with self.argument_context('netappfiles volume list') as c:
         c.argument('account_name', options_list=['--account-name', '-a'], required=True, help='The name of the ANF account', id_part=None)
@@ -48,7 +50,7 @@ def load_arguments(self, _):
         c.argument('account_name', options_list=['--account-name', '-a'], id_part='name')
         c.argument('pool_name', id_part='child_name_1', options_list=['--pool-name', '-p'], required=True, help='The name of the ANF pool')
         c.argument('volume_name', id_part='child_name_2', options_list=['--volume-name', '-v'], required=True, help='The name of the ANF volume')
-        c.argument('snapshot_name', id_part='child_name_3', options_list=['--snapshot-name', '-n', '-s'], required=True, help='The name of the ANF snapshot')
+        c.argument('snapshot_name', id_part='child_name_3', options_list=['--snapshot-name', '--name', '-n', '-s'], required=True, help='The name of the ANF snapshot')
 
     with self.argument_context('netappfiles snapshot list') as c:
         c.argument('account_name', options_list=['--account-name', '-a'], required=True, help='The name of the ANF account', id_part=None)
