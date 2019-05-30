@@ -20,6 +20,7 @@ tib_scale = gib_scale * 1024
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
 
+
 def _update_mapper(existing, new, keys):
     for key in keys:
         existing_value = getattr(existing, key)
@@ -141,7 +142,6 @@ def list_export_policy_rules(cmd, client, account_name, pool_name, volume_name, 
 
 # delete rule by specific index
 def remove_export_policy_rule(cmd, instance, rule_index):
-    rules = []
     # look for the rule and remove
     for rule in instance.export_policy.rules:
         if rule.rule_index == int(rule_index):
