@@ -5,16 +5,17 @@
 
 from azure.cli.testsdk import ScenarioTest, ResourceGroupPreparer
 
-POOL_DEFAULT = "--service-level 'Premium' --size 4398046511104"
-VOLUME_DEFAULT = "--service-level 'Premium' --usage-threshold 107374182400"
+POOL_DEFAULT = "--service-level 'Premium' --size 4"
+VOLUME_DEFAULT = "--service-level 'Premium' --usage-threshold 100"
+LOCATION = "eastus2"
 
 # No tidy up of tests required. The resource group is automatically removed
 
 
 class AzureNetAppFilesMountTargetServiceScenarioTest(ScenarioTest):
-    def setup_vnet(self, rg, vnet_name):
-        self.cmd("az network vnet create -n %s --resource-group %s -l westus2" % (vnet_name, rg))
-        self.cmd("az network vnet subnet create -n subnet01 --vnet-name %s --address-prefixes '10.0.0.0/24' --delegations 'Microsoft.Netapp/volumes' -g %s" % (vnet_name, rg))
+    def setup_vnet(self, rg, vnet_name, subnet_name):
+        self.cmd("az network vnet create -n %s --resource-group %s -l %s" % (vnet_name, rg, LOCATION))
+        self.cmd("az network vnet subnet create -n %s --vnet-name %s --address-prefixes '10.0.0.0/24' --delegations 'Microsoft.Netapp/volumes' -g %s" % (subnet_name, vnet_name, rg))
 
     def current_subscription(self):
         subs = self.cmd("az account show").get_output_in_json()
@@ -22,14 +23,14 @@ class AzureNetAppFilesMountTargetServiceScenarioTest(ScenarioTest):
 
     def create_volume(self, account_name, pool_name, volume_name1, rg, tags=None):
         vnet_name = "cli-vnet-lefr-01"
+        subnet_name = "cli-subnet-lefr-01"
         creation_token = volume_name1
-        subnet_id = "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/subnet01" % (self.current_subscription(), rg, vnet_name)
-        tag = "--tags '%s'" % tags if tags is not None else ""
+        tag = "--tags %s" % tags if tags is not None else ""
 
-        self.setup_vnet(rg, vnet_name)
-        self.cmd("az netappfiles account create -g %s -a '%s' -l 'westus2'" % (rg, account_name)).get_output_in_json()
-        self.cmd("az netappfiles pool create -g %s -a %s -p %s -l 'westus2' %s %s" % (rg, account_name, pool_name, POOL_DEFAULT, tag)).get_output_in_json()
-        volume1 = self.cmd("az netappfiles volume create --resource-group %s --account-name %s --pool-name %s --volume-name %s -l 'westus2' %s --creation-token %s --subnet-id %s %s" % (rg, account_name, pool_name, volume_name1, VOLUME_DEFAULT, creation_token, subnet_id, tag)).get_output_in_json()
+        self.setup_vnet(rg, vnet_name, subnet_name)
+        self.cmd("az netappfiles account create -g %s -a '%s' -l %s" % (rg, account_name, LOCATION)).get_output_in_json()
+        self.cmd("az netappfiles pool create -g %s -a %s -p %s -l %s %s %s" % (rg, account_name, pool_name, LOCATION, POOL_DEFAULT, tag)).get_output_in_json()
+        volume1 = self.cmd("az netappfiles volume create --resource-group %s --account-name %s --pool-name %s --volume-name %s -l %s %s --creation-token %s --vnet %s --subnet %s %s" % (rg, account_name, pool_name, volume_name1, LOCATION, VOLUME_DEFAULT, creation_token, vnet_name, subnet_name, tag)).get_output_in_json()
 
         return volume1
 

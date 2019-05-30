@@ -8,26 +8,17 @@
 import json
 from knack.log import get_logger
 from azure.mgmt.netapp.models import ActiveDirectory, NetAppAccount, NetAppAccountPatch, CapacityPool, Volume, VolumePatch, VolumePropertiesExportPolicy, ExportPolicyRule, Snapshot
+from azure.cli.core.commands.client_factory import get_subscription_id
 
 logger = get_logger(__name__)
 
+# RP expted bytes but CLI allows integer TiBs for ease of use
+gib_scale = 1024 * 1024 * 1024
+tib_scale = gib_scale * 1024
 
-def generate_tags(tag):
-    if tag is None:
-        return None
 
-    tags = {}
-    tag_list = tag.split(" ")
-    for tag_item in tag_list:
-        parts = tag_item.split("=", 1)
-        if len(parts) == 2:
-            # two parts, everything after first '=' is the tag's value
-            tags[parts[0]] = parts[1]
-        elif len(parts) == 1:
-            # one part, no tag value
-            tags[parts[0]] = ""
-    return tags
-
+def str2bool(v):
+    return v.lower() in ("yes", "true", "t", "1")
 
 def _update_mapper(existing, new, keys):
     for key in keys:
@@ -36,115 +27,127 @@ def _update_mapper(existing, new, keys):
         setattr(new, key, new_value if new_value is not None else existing_value)
 
 
-def build_active_directories(active_directories=None):
-    acc_active_directories = None
-
-    if active_directories:
-        acc_active_directories = []
-        ad_list = json.loads(active_directories)
-        for ad in ad_list:
-            username = ad['username'] if 'username' in ad else None
-            password = ad['password'] if 'password' in ad else None
-            domain = ad['domain'] if 'domain' in ad else None
-            dns = ad['dns'] if 'dns' in ad else None
-            smbservername = ad['smbservername'] if 'smbservername' in ad else None
-            organizational_unit = ad['organizational_unit'] if 'organizational_unit' in ad else None
-            active_directory = ActiveDirectory(username=username, password=password, domain=domain, dns=dns, smb_server_name=smbservername, organizational_unit=organizational_unit)
-            acc_active_directories.append(active_directory)
-
-    return acc_active_directories
-
-
 # pylint: disable=unused-argument
-def create_account(cmd, client, account_name, resource_group_name, location, tag=None, active_directories=None):
-    acc_active_directories = build_active_directories(active_directories)
-    body = NetAppAccount(location=location, tags=generate_tags(tag), active_directories=acc_active_directories)
+# account update, active_directory is amended with subgroup commands
+def create_account(cmd, instance, client, account_name, resource_group_name, location, tags=None):
+    body = NetAppAccount(location=location, tags=tags)
     return client.create_or_update(body, resource_group_name, account_name)
 
 
 # pylint: disable=unused-argument
-def update_account(cmd, client, account_name, resource_group_name, location, tag=None, active_directories=None):
-    # Note: this set command is required in addition to the update
-    # The RP implementation is such that patch of active directories provides an addition type amendment, i.e.
-    # absence of an AD does not remove the ADs already present. To perform this a set command is required that
-    # asserts exactly the content provided, replacing whatever is already present including removing it if none
-    # is present
-    acc_active_directories = build_active_directories(active_directories)
-    body = NetAppAccountPatch(location=location, tags=generate_tags(tag), active_directories=acc_active_directories)
-    return client.create_or_update(body, resource_group_name, account_name)
-
-
-def patch_account(cmd, instance, account_name, resource_group_name, location, tag=None, active_directories=None):
-    # parameters for active directory here will add to the existing ADs but cannot remove them
-    # current limitation however is 1 AD/subscription
-    acc_active_directories = build_active_directories(active_directories)
-    body = NetAppAccountPatch(location=location, tags=generate_tags(tag), active_directories=acc_active_directories)
-    _update_mapper(instance, body, ['location', 'active_directories', 'tags'])
+# add an active directory to the netapp account
+# current limitation is 1 AD/subscription
+def add_active_directory(cmd, instance, account_name, resource_group_name, username, password, domain, dns, smb_server_name, organizational_unit=None):
+    active_directories = []
+    active_directory = ActiveDirectory(username=username, password=password, domain=domain, dns=dns, smb_server_name=smb_server_name, organizational_unit=organizational_unit)
+    active_directories.append(active_directory)
+    body = NetAppAccountPatch(active_directories=active_directories)
+    _update_mapper(instance, body, ['active_directories'])
     return body
 
 
-def create_pool(cmd, client, account_name, pool_name, resource_group_name, location, size, service_level, tag=None):
-    body = CapacityPool(service_level=service_level, size=int(size), location=location, tags=generate_tags(tag))
+# list all active directories
+def list_active_directories(cmd, client, account_name, resource_group_name):
+    return client.get(resource_group_name, account_name).active_directories
+
+
+# removes the active directory entry matching the provided id
+# Note:
+# The RP implementation is such that patch of active directories provides an addition type amendment, i.e.
+# absence of an AD does not remove the ADs already present. To perform this a put request is required that
+# asserts exactly the content provided, replacing whatever is already present including removing it if none
+# are present
+def remove_active_directory(cmd, client, account_name, resource_group_name, active_directory):
+    instance = client.get(resource_group_name, account_name)
+
+    for ad in instance.active_directories:
+        if ad.active_directory_id == active_directory:
+            instance.active_directories.remove(ad)
+
+    active_directories = instance.active_directories
+    body = NetAppAccount(location=instance.location, tags=instance.tags, active_directories=active_directories)
+
+    return client.create_or_update(body, resource_group_name, account_name)
+
+
+# account update, active_directory is amended with subgroup commands
+def patch_account(cmd, instance, account_name, resource_group_name, tags=None):
+    body = NetAppAccountPatch(tags=tags)
+    _update_mapper(instance, body, ['tags'])
+    return body
+
+
+def create_pool(cmd, client, account_name, pool_name, resource_group_name, service_level, location, size, tags=None):
+    body = CapacityPool(service_level=service_level, size=int(size) * tib_scale, location=location, tags=tags)
     return client.create_or_update(body, resource_group_name, account_name, pool_name)
 
 
-def patch_pool(cmd, instance, location=None, size=None, service_level=None, tag=None):
+# pool update
+def patch_pool(cmd, instance, size=None, service_level=None, tags=None):
     # put operation to update the record
     if size is not None:
-        size = int(size)
-    body = CapacityPool(service_level=service_level, size=size, location=location, tags=generate_tags(tag))
+        size = int(size) * tib_scale
+    body = CapacityPool(service_level=service_level, size=size, tags=tags)
     _update_mapper(instance, body, ['location', 'service_level', 'size', 'tags'])
     return body
 
 
-def build_export_policy_rules(export_policy=None):
-    rules = []
-
-    if export_policy:
-        ep_list = json.loads(export_policy)
-        for ep in ep_list:
-            rule_index = ep['rule_index'] if 'rule_index' in ep else None
-            unix_read_only = ep['unix_read_only'] if 'unix_read_only' in ep else None
-            unix_read_write = ep['unix_read_write'] if 'unix_read_write' in ep else None
-            cifs = ep['cifs'] if 'cifs' in ep else None
-            nfsv3 = ep['nfsv3'] if 'nfsv3' in ep else None
-            nfsv4 = ep['nfsv4'] if 'nfsv4' in ep else None
-            allowed_clients = ep['allowed_clients'] if 'allowed_clients' in ep else None
-            export_policy = ExportPolicyRule(rule_index=rule_index, unix_read_only=unix_read_only, unix_read_write=unix_read_write, cifs=cifs, nfsv3=nfsv3, nfsv4=nfsv4, allowed_clients=allowed_clients)
-            rules.append(export_policy)
-
-    return rules
-
-
-def create_volume(cmd, client, account_name, pool_name, volume_name, resource_group_name, location, service_level, creation_token, usage_threshold, subnet_id, tag=None, export_policy=None):
-    rules = build_export_policy_rules(export_policy)
-    volume_export_policy = VolumePropertiesExportPolicy(rules=rules) if rules != [] else None
-
+def create_volume(cmd, client, account_name, pool_name, volume_name, resource_group_name, location, creation_token, usage_threshold, vnet, subnet='default', service_level=None, tags=None):
+    subs_id = get_subscription_id(cmd.cli_ctx)
+    subnet_id = "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s" % (subs_id, resource_group_name, vnet, subnet)
     body = Volume(
-        usage_threshold=int(usage_threshold),
+        usage_threshold=int(usage_threshold) * gib_scale,
         creation_token=creation_token,
         service_level=service_level,
         location=location,
         subnet_id=subnet_id,
-        tags=generate_tags(tag),
-        export_policy=volume_export_policy)
+        tags=tags)
 
     return client.create_or_update(body, resource_group_name, account_name, pool_name, volume_name)
 
 
-def patch_volume(cmd, instance, service_level=None, usage_threshold=None, tag=None, export_policy=None):
+# volume update
+def patch_volume(cmd, instance, usage_threshold=None, service_level=None, tags=None):
+    params = VolumePatch(
+        usage_threshold=None if usage_threshold is None else int(usage_threshold) * gib_scale,
+        service_level=service_level,
+        tags=tags)
+    _update_mapper(instance, params, ['service_level', 'usage_threshold', 'tags'])
+    return params
 
-    # the export policy provided replaces any existing eport policy
-    rules = build_export_policy_rules(export_policy)
-    volume_export_policy = VolumePropertiesExportPolicy(rules=rules) if rules != [] else None
+
+# add new rule to policy
+def add_export_policy_rule(cmd, instance, allowed_clients, rule_index, unix_read_only, unix_read_write, cifs, nfsv3, nfsv4):
+    rules = []
+
+    export_policy = ExportPolicyRule(rule_index=rule_index, unix_read_only=str2bool(unix_read_only), unix_read_write=str2bool(unix_read_write), cifs=str2bool(cifs), nfsv3=str2bool(nfsv3), nfsv4=str2bool(nfsv4), allowed_clients=allowed_clients)
+
+    rules.append(export_policy)
+    for rule in instance.export_policy.rules:
+        rules.append(rule)
+
+    volume_export_policy = VolumePropertiesExportPolicy(rules=rules)
 
     params = VolumePatch(
-        usage_threshold=None if usage_threshold is None else int(usage_threshold),
-        service_level=service_level,
-        tags=generate_tags(tag),
         export_policy=volume_export_policy)
-    _update_mapper(instance, params, ['service_level', 'usage_threshold', 'tags', 'export_policy'])
+    _update_mapper(instance, params, ['export_policy'])
     return params
+
+
+# list all rules
+def list_export_policy_rules(cmd, client, account_name, pool_name, volume_name, resource_group_name):
+    return client.get(resource_group_name, account_name, pool_name, volume_name).export_policy
+
+
+# delete rule by specific index
+def remove_export_policy_rule(cmd, instance, rule_index):
+    rules = []
+    # look for the rule and remove
+    for rule in instance.export_policy.rules:
+        if rule.rule_index == int(rule_index):
+            instance.export_policy.rules.remove(rule)
+
+    return instance
 
 
 def create_snapshot(cmd, client, account_name, pool_name, volume_name, snapshot_name, resource_group_name, location, file_system_id=None):

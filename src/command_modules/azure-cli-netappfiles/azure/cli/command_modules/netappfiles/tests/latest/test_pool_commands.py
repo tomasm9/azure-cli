@@ -6,9 +6,10 @@
 from azure.cli.testsdk import ScenarioTest, ResourceGroupPreparer
 from knack.util import CLIError
 
-POOL_DEFAULT = "--service-level 'Premium' --size 4398046511104"
-POOL_DEFAULT_TOO_SMALL = "--service-level 'Premium' --size 4398046511103"
+POOL_DEFAULT = "--service-level Premium --size 4"
+POOL_DEFAULT_TOO_SMALL = "--service-level 'Premium' --size 3"
 POOL_DEFAULT_STRING_SIZE = "--service-level 'Premium' --size a"
+LOCATION = "eastus2"
 
 # No tidy up of tests required. The resource group is automatically removed
 
@@ -20,8 +21,8 @@ class AzureNetAppFilesPoolServiceScenarioTest(ScenarioTest):
         pool_name = self.create_random_name(prefix='cli-pool-', length=24)
         tags = "Tag1=Value1 Tag2=Value2"
 
-        self.cmd("az netappfiles account create --resource-group {rg} --account-name '%s' -l 'westus2'" % account_name).get_output_in_json()
-        pool = self.cmd("az netappfiles pool create --resource-group {rg} --account-name %s --pool-name %s -l 'westus2' %s --tags '%s'" % (account_name, pool_name, POOL_DEFAULT, tags)).get_output_in_json()
+        self.cmd("az netappfiles account create --resource-group {rg} --account-name '%s' -l %s" % (account_name, LOCATION)).get_output_in_json()
+        pool = self.cmd("az netappfiles pool create --resource-group {rg} --account-name %s --pool-name %s -l %s %s --tags %s" % (account_name, pool_name, LOCATION, POOL_DEFAULT, tags)).get_output_in_json()
         assert pool['name'] == account_name + '/' + pool_name
         assert pool['tags']['Tag1'] == 'Value1'
         assert pool['tags']['Tag2'] == 'Value2'
@@ -34,7 +35,7 @@ class AzureNetAppFilesPoolServiceScenarioTest(ScenarioTest):
         assert len(pool_list) == 0
 
         # and again with short forms and also unquoted
-        pool = self.cmd("az netappfiles pool create -g {rg} -a %s -p %s -l 'westus2' --service-level 'Premium' --size 4398046511104 --tags '%s'" % (account_name, pool_name, tags)).get_output_in_json()
+        pool = self.cmd("az netappfiles pool create -g {rg} -a %s -p %s -l %s --service-level 'Premium' --size 4 --tags %s" % (account_name, pool_name, LOCATION, tags)).get_output_in_json()
         assert pool['name'] == account_name + '/' + pool_name
         assert pool['tags']['Tag1'] == 'Value1'
         assert pool['tags']['Tag2'] == 'Value2'
@@ -48,9 +49,9 @@ class AzureNetAppFilesPoolServiceScenarioTest(ScenarioTest):
         account_name = self.create_random_name(prefix='cli-acc-', length=24)
         pool_name = self.create_random_name(prefix='cli-pool-', length=24)
 
-        self.cmd("az netappfiles account create --resource-group {rg} --account-name '%s' -l 'westus2'" % account_name).get_output_in_json()
+        self.cmd("az netappfiles account create --resource-group {rg} --account-name '%s' -l %s" % (account_name, LOCATION)).get_output_in_json()
         try:
-            self.cmd("az netappfiles pool create --resource-group {rg} --account-name %s --pool-name %s -l 'westus2' %s " % (account_name, pool_name, POOL_DEFAULT_TOO_SMALL)).get_output_in_json()
+            self.cmd("az netappfiles pool create --resource-group {rg} --account-name %s --pool-name %s -l %s %s " % (account_name, pool_name, LOCATION, POOL_DEFAULT_TOO_SMALL)).get_output_in_json()
         except Exception as ex:
             assert isinstance(ex, CLIError)
 
@@ -59,9 +60,9 @@ class AzureNetAppFilesPoolServiceScenarioTest(ScenarioTest):
         account_name = self.create_random_name(prefix='cli-acc-', length=24)
         pool_name = self.create_random_name(prefix='cli-pool-', length=24)
 
-        self.cmd("az netappfiles account create --resource-group {rg} --account-name '%s' -l 'westus2'" % account_name).get_output_in_json()
+        self.cmd("az netappfiles account create --resource-group {rg} --account-name '%s' -l %s" % (account_name, LOCATION)).get_output_in_json()
         try:
-            self.cmd("az netappfiles pool create --resource-group {rg} --account-name %s --pool-name %s -l 'westus2' %s " % (account_name, pool_name, POOL_DEFAULT_STRING_SIZE)).get_output_in_json()
+            self.cmd("az netappfiles pool create --resource-group {rg} --account-name %s --pool-name %s -l %s %s " % (account_name, pool_name, LOCATION, POOL_DEFAULT_STRING_SIZE)).get_output_in_json()
         except Exception as ex:
             assert isinstance(ex, CLIError)
 
@@ -69,10 +70,10 @@ class AzureNetAppFilesPoolServiceScenarioTest(ScenarioTest):
     def test_list_pools(self):
         account_name = self.create_random_name(prefix='cli', length=24)
         pools = [self.create_random_name(prefix='cli', length=24), self.create_random_name(prefix='cli', length=24)]
-        self.cmd("az netappfiles account create -g {rg} -a '%s' -l 'westus2'" % account_name).get_output_in_json()
+        self.cmd("az netappfiles account create -g {rg} -a '%s' -l %s" % (account_name, LOCATION)).get_output_in_json()
 
         for pool_name in pools:
-            self.cmd("az netappfiles pool create -g {rg} -a '%s' -p '%s' -l 'westus2' %s --tags 'Tag1=Value1'" % (account_name, pool_name, POOL_DEFAULT)).get_output_in_json()
+            self.cmd("az netappfiles pool create -g {rg} -a '%s' -p '%s' -l %s %s --tags Tag1=Value1" % (account_name, pool_name, LOCATION, POOL_DEFAULT)).get_output_in_json()
 
         pool_list = self.cmd("netappfiles pool list -g {rg} -a '%s'" % account_name).get_output_in_json()
         assert len(pool_list) == 2
@@ -86,8 +87,8 @@ class AzureNetAppFilesPoolServiceScenarioTest(ScenarioTest):
     def test_get_pool_by_name(self):
         account_name = self.create_random_name(prefix='cli', length=24)
         pool_name = self.create_random_name(prefix='cli', length=24)
-        self.cmd("az netappfiles account create -g {rg} -a '%s' -l 'westus2'" % account_name).get_output_in_json()
-        self.cmd("az netappfiles pool create -g {rg} -a %s -p %s -l 'westus2' %s" % (account_name, pool_name, POOL_DEFAULT)).get_output_in_json()
+        self.cmd("az netappfiles account create -g {rg} -a '%s' -l %s" % (account_name, LOCATION)).get_output_in_json()
+        self.cmd("az netappfiles pool create -g {rg} -a %s -p %s -l %s %s" % (account_name, pool_name, LOCATION, POOL_DEFAULT)).get_output_in_json()
 
         pool = self.cmd("az netappfiles pool show --resource-group {rg} -a %s -p %s" % (account_name, pool_name)).get_output_in_json()
         assert pool['name'] == account_name + '/' + pool_name
@@ -100,9 +101,9 @@ class AzureNetAppFilesPoolServiceScenarioTest(ScenarioTest):
         pool_name = self.create_random_name(prefix='cli-pool-', length=24)
         tag = "Tag1=Value1"
 
-        self.cmd("az netappfiles account create -g {rg} -a %s -l 'westus2'" % account_name).get_output_in_json()
+        self.cmd("az netappfiles account create -g {rg} -a %s -l %s" % (account_name, LOCATION)).get_output_in_json()
 
-        pool = self.cmd("az netappfiles pool create -g {rg} -a %s -p %s -l 'westus2' %s" % (account_name, pool_name, POOL_DEFAULT)).get_output_in_json()
+        pool = self.cmd("az netappfiles pool create -g {rg} -a %s -p %s -l %s %s" % (account_name, pool_name, LOCATION, POOL_DEFAULT)).get_output_in_json()
 
         assert pool['name'] == account_name + '/' + pool_name
         pool = self.cmd("az netappfiles pool update --resource-group {rg} -a %s -p %s --tags %s --service-level 'Standard'" % (account_name, pool_name, tag)).get_output_in_json()

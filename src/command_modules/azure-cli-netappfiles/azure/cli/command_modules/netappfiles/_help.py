@@ -23,72 +23,45 @@ helps['netappfiles account'] = """
 
 helps['netappfiles account create'] = """
     type: command
-    short-summary: Create a new Azure NetApp Files (ANF) account. Note that active directory can only be applied to an existing account (using set/update).
+    short-summary: Create a new Azure NetApp Files (ANF) account. Note that active directories are added using the subgroup commands.
     parameters:
-        - name: --account-name -a -n
+        - name: --account-name --name -a -n
           type: string
           short-summary: The name of the ANF account
         - name: --tags
-          type: string
-          short-summary: A list of space separated tags to apply to the account
+          short-summary: Space-separated tags in `key[=value]` format
     examples:
         - name: Create an ANF account
           text: >
-            az netappfiles account create -g group --account-name name -l location
-"""
-
-helps['netappfiles account set'] = """
-    type: command
-    short-summary: Sets the tags or the active directory details for a specified ANF account. Sets the active directory property to exactly what is provided. If none is provided then the active directory is removed, i.e. provide empty [].
-    parameters:
-        - name: --account-name -a -n
-          type: string
-          short-summary: The name of the ANF account
-        - name: --tags
-          type: string
-          short-summary: A list of space separated tags to apply to the account
-        - name: --active-directories
-          type: string
-          short-summary: An array of active directory (AD) settings in json format. Limitation one AD/subscription. Consists of the fields username (Username of Active Directory domain administrator), password (Plain text password of Active Directory domain administrator), domain (Name of the Active Directory domain), dns (Comma separated list of DNS server IP addresses for the Active Directory domain), smb_server_name (NetBIOS name of the SMB server. This name will be registered as a computer account in the AD and used to mount volumes. Must be 10 characters or less), organizational_unit (The Organizational Unit (OU) within the Windows Active Directory)
-    examples:
-        - name: Update the tags and active directory of an ANF account
-          text: >
-            az netappfiles account set -g group --account-name name --tags 'key[=value] key[=value]' --active-directories '[{"username": "aduser", "password": "aduser", "smbservername": "SMBSERVER", "dns": "1.2.3.4", "domain": "westcentralus"}]' -l westus2
-        - name: Remove the active directory from the ANF account
-          text: >
-            az netappfiles account set -g group --account-name name --active-directories '[]' -l westus2
+            az netappfiles account create -g mygroup --name myname -l location --tags testtag1=mytag1 testtag3=mytagg
 """
 
 helps['netappfiles account update'] = """
     type: command
-    short-summary: Set/modify the tags or the active directory details for a specified ANF account. Active directory settings are appended only - if none are present no change is made otherwise the active directory is replaced with that provided.
+    short-summary: Set/modify the tags for a specified ANF account.
     parameters:
-        - name: --account-name -a -n
+        - name: --account-name --name -a -n
           type: string
           short-summary: The name of the ANF account
         - name: --tags
-          type: string
-          short-summary: A list of space separated tags to apply to the account
-        - name: --active-directories
-          type: string
-          short-summary: An array of active directory (AD) settings in json format. Limitation one AD/subscription. Consists of the fields username (Username of Active Directory domain administrator), password (Plain text password of Active Directory domain administrator), domain (Name of the Active Directory domain), dns (Comma separated list of DNS server IP addresses for the Active Directory domain), smb_server_name (NetBIOS name of the SMB server. This name will be registered as a computer account in the AD and used to mount volumes. Must be 10 characters or less), organizational_unit (The Organizational Unit (OU) within the Windows Active Directory)
+          short-summary: Space-separated tags in `key[=value]` format
     examples:
-        - name: Update the tags and active directory of an ANF account
+        - name: Update the tags of an ANF account
           text: >
-            az netappfiles account update -g group --account-name name --tags 'key[=value] key[=value]' --active-directories '[{"username": "aduser", "password": "aduser", "smbservername": "SMBSERVER", "dns": "1.2.3.4", "domain": "westcentralus"}]' -l westus2
+            az netappfiles account update -g mygroup --name myname --tags testtag2=mytag2
 """
 
 helps['netappfiles account delete'] = """
     type: command
     short-summary: Delete the specified ANF account.
     parameters:
-        - name: --account-name -a -n
+        - name: --account-name --name -a -n
           type: string
           short-summary: The name of the ANF account
     examples:
         - name: Delete an ANF account
           text: >
-            az netappfiles account delete -g group --account-name name
+            az netappfiles account delete -g mygroup --name myname
 """
 
 helps['netappfiles account list'] = """
@@ -97,21 +70,84 @@ helps['netappfiles account list'] = """
     examples:
         - name: List ANF accounts within a resource group
           text: >
-            az netappfiles account list -g group
+            az netappfiles account list -g mygroup
 """
 
 helps['netappfiles account show'] = """
     type: command
     short-summary: Get the specified ANF account.
     parameters:
-        - name: --account-name -a -n
+        - name: --account-name --name -a -n
           type: string
           short-summary: The name of the ANF account
     examples:
         - name: Get an ANF account
           text: >
-            az netappfiles account show -g group --account-name name
+            az netappfiles account show -g mygroup --name myname
 """
+
+# account active directory subgroup commands
+
+helps['netappfiles account active-directory add'] = """
+    type: command
+    short-summary: Add an active directory to the account.
+    parameters:
+        - name: --account-name --name -a -n
+          type: string
+          short-summary: The name of the ANF account
+        - name: --username
+          type: string
+          short-summary: Username of Active Directory domain administrator
+        - name: --password
+          type: string
+          short-summary: Plain text password of Active Directory domain administrator
+        - name: --domain
+          type: string
+          short-summary: Name of the Active Directory domain
+        - name: --dns
+          type: string
+          short-summary: Comma separated list of DNS server IP addresses for the Active Directory domain
+        - name: --smb-server-name
+          type: string
+          short-summary: NetBIOS name of the SMB server. This name will be registered as a computer account in the AD and used to mount volumes. Must be 10 characters or less
+        - name: --organizational-unit
+          type: string
+          short-summary: The Organizational Unit (OU) within the Windows Active Directory
+    examples:
+        - name: Add an active directory to the account
+          text: >
+            az netappfiles account active-directory add -g mygroup --name myname --username aduser --password aduser --smb-server-name SMBSERVER --dns 1.2.3.4 --domain westcentralus
+"""
+
+helps['netappfiles account active-directory list'] = """
+    type: command
+    short-summary: List the active directories of an account.
+    parameters:
+        - name: --account-name --name -a -n
+          type: string
+          short-summary: The name of the ANF account
+    examples:
+        - name: Add an active directory to the account
+          text: >
+            az netappfiles account active-directory list -g mygroup --name myname
+"""
+
+helps['netappfiles account active-directory remove'] = """
+    type: command
+    short-summary: Remove an active directory from the account.
+    parameters:
+        - name: --account-name --name -a -n
+          type: string
+          short-summary: The name of the ANF account
+        - name: --active-directory
+          type: string
+          short-summary: The id of the active directory
+    examples:
+        - name: Remove an active directory from the account
+          text: >
+            az netappfiles account active-directory remove -g mygroup --name myname --active-directory 13641da9-c0e9-4b97-84fc-4f8014a93848
+"""
+
 
 # pools
 
@@ -127,22 +163,21 @@ helps['netappfiles pool create'] = """
         - name: --account-name -a
           type: string
           short-summary: The name of the ANF account
-        - name: --pool-name -n -p
+        - name: --pool-name --name -n -p
           type: string
           short-summary: The name of the ANF pool
         - name: --size
           type: integer
-          short-summary: The size for the ANF pool. Must be in 4 tebibytes increments, expressed in bytes
+          short-summary: The size for the ANF pool. Must be an integer number of tebibytes in multiples of 4
         - name: --service-level
           type: string
-          short-summary: The service level for the ANF pool ["Standard"|"Premium"|"Extreme"]
+          short-summary: The service level for the ANF pool ["Standard"|"Premium"|"Ultra"]
         - name: --tags
-          type: string
-          short-summary: A list of space separated tags to apply to the pool
+          short-summary: Space-separated tags in `key[=value]` format
     examples:
         - name: Create an ANF pool
           text: >
-            az netappfiles pool create -g group --account-name aname --pool-name pname -l location --size 4398046511104 --service-level "Premium"
+            az netappfiles pool create -g mygroup --account-name myaccountname --name mypoolname -l westus2 --size 8 --service-level "Premium"
 """
 
 helps['netappfiles pool update'] = """
@@ -152,22 +187,21 @@ helps['netappfiles pool update'] = """
         - name: --account-name -a
           type: string
           short-summary: The name of the ANF account
-        - name: --pool-name -n -p
+        - name: --pool-name --name -n -p
           type: string
           short-summary: The name of the ANF pool
         - name: --size
           type: integer
-          short-summary: The size for the ANF pool. Must be in 4 tebibytes increments, expressed in bytes
+          short-summary: The size for the ANF pool. Must be an integer number of tebibytes in multiples of 4
         - name: --service-level
           type: string
-          short-summary: The service level for the ANF pool ["Standard"|"Premium"|"Extreme"]
+          short-summary: The service level for the ANF pool ["Standard"|"Premium"|"Ultra"]
         - name: --tags
-          type: string
-          short-summary: A list of space separated tags to apply to the pool
+          short-summary: Space-separated tags in `key[=value]` format
     examples:
         - name: Update specific values for an ANF pool
           text: >
-            az netappfiles pool update -g group --account-name aname --pool-name pname --service-level "Extreme" --tags 'key[=value] key[=value]'
+            az netappfiles pool update -g mygroup --account-name myaccname --name mypoolname --service-level "Ultra" --tags mytag1=abcd mytag2=efgh
 """
 
 helps['netappfiles pool delete'] = """
@@ -177,13 +211,13 @@ helps['netappfiles pool delete'] = """
         - name: --account-name -a
           type: string
           short-summary: The name of the ANF account
-        - name: --pool-name -n -p
+        - name: --pool-name --name -n -p
           type: string
           short-summary: The name of the ANF pool
     examples:
         - name: Delete an ANF pool
           text: >
-            az netappfiles pool delete -g group --account-name aname --pool-name pname
+            az netappfiles pool delete -g mygroup --account-name myaccname --name mypoolname
 """
 
 helps['netappfiles pool list'] = """
@@ -196,7 +230,7 @@ helps['netappfiles pool list'] = """
     examples:
         - name: List the pools for the ANF account
           text: >
-            az netappfiles pool list -g group --account-name name
+            az netappfiles pool list -g mygroup --name myname
 """
 
 helps['netappfiles pool show'] = """
@@ -206,13 +240,13 @@ helps['netappfiles pool show'] = """
         - name: --account-name -a
           type: string
           short-summary: The name of the ANF account
-        - name: --pool-name -n -p
+        - name: --pool-name --name -n -p
           type: string
           short-summary: The name of the ANF pool
     examples:
         - name: Get an ANF pool
           text: >
-            az netappfiles pool show -g group --account-name aname --pool-name pname
+            az netappfiles pool show -g mygroup --account-name myaccname --name mypoolname
 """
 
 # volumes
@@ -224,7 +258,7 @@ helps['netappfiles volume'] = """
 
 helps['netappfiles volume create'] = """
     type: command
-    short-summary: Create a new Azure NetApp Files (ANF) volume.
+    short-summary: Create a new Azure NetApp Files (ANF) volume. Export policies are applied with the subgroup commands
     parameters:
         - name: --account-name -a
           type: string
@@ -232,36 +266,35 @@ helps['netappfiles volume create'] = """
         - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
-        - name: --volume-name -n -v
+        - name: --volume-name --name -n -v
           type: string
           short-summary: The name of the ANF volume
         - name: --service-level
           type: string
-          short-summary: The service level ["Standard"|"Premium"|"Extreme"]
+          short-summary: The service level [Standard|Premium|Ultra]
         - name: --usage-threshold
           type: int
-          short-summary: The maximum storage quota allowed for a file system in bytes. Min 100 GiB, max 100TiB"
+          short-summary: The maximum storage quota allowed for a file system as integer number of GiB. Min 100 GiB, max 100TiB"
         - name: --creation-token
           type: string
-          short-summary: A unique file path identifier, from 1 to 80 characters
-        - name: --subnet-id
+          short-summary: A 1-80 character long alphanumeric string value that identifies a unique file share or mount point in the target subnet
+        - name: --vnet
           type: string
-          short-summary: The subnet identifier
+          short-summary: The vnet for the volume
+        - name: --subnet
+          type: string
+          short-summary: The subnet. If omitted 'default' will be used
         - name: --tags
-          type: string
-          short-summary:  A list of space separated tags to apply to the volume
-        - name: --export-policy
-          type: string
-          short-summary:  A json list of the parameters for export policy containing rule_index (Order index), unix_read_only (Read only access), unix_read_write (Read and write access), cifs (Allows CIFS protocol), nfsv3 (Allows NFSv3 protocol), nfsv4 (Allows NFSv4 protocol) and allowedClients (Client ingress specification as comma separated string with IPv4 CIDRs, IPv4 host addresses and host names)
+          short-summary: Space-separated tags in `key[=value]` format
     examples:
         - name: Create an ANF volume
           text: >
-            az netappfiles volume create -g group --account-name aname --pool-name pname --volume-name vname -l location --service-level "Premium" --usage-threshold 107374182400 --creation-token "unique-token" --subnet-id "/subscriptions/mysubsid/resourceGroups/myrg/providers/Microsoft.Network/virtualNetworks/myvnet/subnets/default" --export-policy '[{"allowed_clients":"0.0.0.0/0", "rule_index": "1", "unix_read_only": "true", "unix_read_write": "false", "cifs": "false", "nfsv3": "true", "nfsv3": "true", "nfsv4": "false"}]'
+            az netappfiles volume create -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname -l westus2 --service-level "Premium" --usage-threshold 100 --creation-token "unique-file-path" --vnet myvnet --subnet mysubnet
 """
 
 helps['netappfiles volume update'] = """
     type: command
-    short-summary: Update the specified ANF volume with the values provided. Unspecified values will remain unchanged.
+    short-summary: Update the specified ANF volume with the values provided. Unspecified values will remain unchanged. Export policies are amended/created with the subgroup commands
     parameters:
         - name: --account-name -a
           type: string
@@ -269,25 +302,21 @@ helps['netappfiles volume update'] = """
         - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
-        - name: --volume-name -n -v
+        - name: --volume-name --name -n -v
           type: string
           short-summary: The name of the ANF volume
         - name: --service-level
           type: string
-          short-summary: The service level ["Standard"|"Premium"|"Extreme"]
+          short-summary: The service level ["Standard"|"Premium"|"Ultra"]
         - name: --usage-threshold
           type: int
-          short-summary: The maximum storage quota allowed for a file system in bytes. Min 100 GiB, max 100TiB"
+          short-summary: The maximum storage quota allowed for a file system as integer number of GiB. Min 100 GiB, max 100TiB"
         - name: --tags
-          type: string
-          short-summary:  A list of space separated tags to apply to the volume
-        - name: --export-policy
-          type: string
-          short-summary:  A json list of the parameters for export policy containing rule_index (Order index), unix_read_only (Read only access), unix_read_write (Read and write access), cifs (Allows CIFS protocol), nfsv3 (Allows NFSv3 protocol), nfsv4 (Allows NFSv4 protocol) and allowedClients (Client ingress specification as comma separated string with IPv4 CIDRs, IPv4 host addresses and host names)
+          short-summary: Space-separated tags in `key[=value]` format
     examples:
-        - name: Create an ANF volume
+        - name: Update an ANF volume
           text: >
-            az netappfiles volume update -g group --account-name aname --pool-name pname --volume-name vname --service-level level --usage-threshold 107374182400 --tags 'key[=value] key[=value]' --export-policy '[{"allowed_clients":"1.2.3.0/24", "rule_index": "1", "unix_read_only": "true", "unix_read_write": "false", "cifs": "false", "nfsv3": "true", "nfsv3": "true", "nfsv4": "false"}, {"allowed_clients":"1.2.4.0/24", "rule_index": "2", "unix_read_only": "true", "unix_read_write": "false", "cifs": "false", "nfsv3": "true", "nfsv3": "true", "nfsv4": "false"}]'
+            az netappfiles volume update -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname --service-level level --usage-threshold 100 --tags mytag=specialvol
 """
 
 helps['netappfiles volume delete'] = """
@@ -300,13 +329,13 @@ helps['netappfiles volume delete'] = """
         - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
-        - name: --volume-name -n -v
+        - name: --volume-name --name -n -v
           type: string
           short-summary: The name of the ANF volume
     examples:
         - name: Delete an ANF volume
           text: >
-            az netappfiles volume delete -g group --account-name aname --pool-name pname --volume-name vname
+            az netappfiles volume delete -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname
 """
 
 helps['netappfiles volume list'] = """
@@ -322,7 +351,7 @@ helps['netappfiles volume list'] = """
     examples:
         - name: List the ANF volumes of the pool
           text: >
-            az netappfiles volume list -g group --account-name aname --pool-name pname
+            az netappfiles volume list -g mygroup --account-name myaccname --name mypoolname
 """
 
 helps['netappfiles volume show'] = """
@@ -335,13 +364,96 @@ helps['netappfiles volume show'] = """
         - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
-        - name: --volume-name -n -v
+        - name: --volume-name --name -n -v
           type: string
           short-summary: The name of the ANF pool
     examples:
         - name: Returns the properties of the given ANF volume
           text: >
-            az netappfiles volume show -g group --account-name aname --pool-name pname --volume-name vname
+            az netappfiles volume show -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname
+"""
+
+# volume subgroup to create export policy attribute
+
+helps['netappfiles volume export-policy add'] = """
+    type: command
+    short-summary: Add a new rule to the export policy for a volume.
+    parameters:
+        - name: --account-name -a
+          type: string
+          short-summary: The name of the ANF account
+        - name: --pool-name -p
+          type: string
+          short-summary: The name of the ANF pool
+        - name: --volume-name --name -n -v
+          type: string
+          short-summary: The name of the ANF volume
+        - name: --rule_index
+          type: string
+          short-summary: Order index. No number can be repeated. Max 6 rules.
+        - name: --unix_read_only
+          type: string
+          short-summary: Flag indicating read only access
+        - name: --unix_read_write
+          type: string
+          short-summary: Indication of read and write access
+        - name: --cifs
+          type: string
+          short-summary: Indication that CIFS protocol is allowed
+        - name: --nfsv3
+          type: string
+          short-summary: Indication that NFSv3 protocol is allowed
+        - name: --nfsv4
+          type: string
+          short-summary: Indication that NFSv4 protocol is allowed
+        - name: --allowed-clients
+          type: string
+          short-summary: Client ingress specification as comma separated string with IPv4 CIDRs, IPv4 host addresses and host names)
+    examples:
+        - name: Add an export policy rule for the ANF volume
+          text: >
+            az netappfiles volume export-policy add -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname --allowed-clients "1.2.3.0/24" --rule_index 2 --unix_read_only true --unix_read_write false --cifs false --nfsv3 true --nfsv4 false
+"""
+
+helps['netappfiles volume export-policy list'] = """
+    type: command
+    short-summary: List the export policy rules for a volume.
+    parameters:
+        - name: --account-name -a
+          type: string
+          short-summary: The name of the ANF account
+        - name: --pool-name -p
+          type: string
+          short-summary: The name of the ANF pool
+        - name: --volume-name --name -n -v
+          type: string
+          short-summary: The name of the ANF volume
+    examples:
+        - name: List the export policy rules for an ANF volume
+          text: >
+            az netappfiles volume export-policy list -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname --rule_index 4
+"""
+
+helps['netappfiles volume export-policy remove'] = """
+    type: command
+    short-summary: Remove a rule from the export policy for a volume by rule index. The current rules can be obtained by performing the subgroup list command.
+    parameters:
+        - name: --account-name -a
+          type: string
+          short-summary: The name of the ANF account
+        - name: --pool-name -p
+          type: string
+          short-summary: The name of the ANF pool
+        - name: --volume-name --name -n -v
+          type: string
+          short-summary: The name of the ANF volume
+        - name: --rule_index
+          type: string
+          short-summary: Order index. Range 1 to 6.
+    examples:
+        - name: Remove an export policy rule for an ANF volume
+          text: >
+            az netappfiles volume export-policy remove -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname --rule_index 4
 """
 
 # mounttargets
@@ -367,7 +479,7 @@ helps['netappfiles mount-target list'] = """
     examples:
         - name: list the mount targets of an ANF volume
           text: >
-            az netappfiles mount-target list -g group --account-name aname --pool-name pname --volume-name vname
+            az netappfiles mount-target list -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname
 """
 
 # snapshots
@@ -390,7 +502,7 @@ helps['netappfiles snapshot create'] = """
         - name: --volume-name -v
           type: string
           short-summary: The name of the ANF volume
-        - name: --snapshot-name -n -s
+        - name: --snapshot-name --name -n -s
           type: string
           short-summary: The name of the ANF snapshot
         - name: --file-system-id
@@ -399,7 +511,7 @@ helps['netappfiles snapshot create'] = """
     examples:
         - name: Create an ANF snapshot
           text: >
-            az netappfiles snapshot create -g group --account-name account-name --pool-name pname --volume-name vname --snapshot-name sname -l location --file-system-id volume-uuid
+            az netappfiles snapshot create -g mygroup --account-name myaccname --pool-name mypoolname --volume-name myvolname --name mysnapname -l eastus --file-system-id 13641da9-c0e9-4b97-84fc-4f8014a93848
 """
 
 helps['netappfiles snapshot delete'] = """
@@ -415,13 +527,13 @@ helps['netappfiles snapshot delete'] = """
         - name: --volume-name -v
           type: string
           short-summary: The name of the ANF volume
-        - name: --snapshot-name -n -s
+        - name: --snapshot-name --name -n -s
           type: string
           short-summary: The name of the ANF snapshot
     examples:
         - name: Delete an ANF snapshot
           text: >
-            az netappfiles snapshot delete -g group --account-name aname --pool-name pname --volume-name vname --snapshot-name sname
+            az netappfiles snapshot delete -g mygroup --account-name myaccname --pool-name mypoolname --volume-name myvolname --name mysnapname
 """
 
 helps['netappfiles snapshot list'] = """
@@ -440,7 +552,7 @@ helps['netappfiles snapshot list'] = """
     examples:
         - name: list the snapshots of an ANF volume
           text: >
-            az netappfiles snapshot list -g group --account-name aname --pool-name pname --volume-name vname
+            az netappfiles snapshot list -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname
 """
 
 helps['netappfiles snapshot show'] = """
@@ -456,11 +568,11 @@ helps['netappfiles snapshot show'] = """
         - name: --volume-name -v
           type: string
           short-summary: The name of the ANF volume
-        - name: --snapshot-name -n -s
+        - name: --snapshot-name --name -n -s
           type: string
           short-summary: The name of the ANF snapshot
     examples:
         - name: Return the specified ANF snapshot
           text: >
-            az netappfiles snapshot show -g group --account-name aname --pool-name pname --volume-name vname --snapshot-name sname
+            az netappfiles snapshot show -g mygroup --account-name myaccname --pool-name mypoolname --volume-name myvolname --name mysnapname
 """
