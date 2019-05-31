@@ -113,22 +113,36 @@ class AzureNetAppFilesVolumeServiceScenarioTest(ScenarioTest):
         assert not volume['exportPolicy']['rules'][0]['cifs']
         assert volume['exportPolicy']['rules'][0]['ruleIndex'] == 1
 
-    # cannot test export policy (or active directory) due to unknown issue where the export policy params are interpreted as unexpected kwargs
-    # tested manually at command line but leaving this tet in for now
     @ResourceGroupPreparer(name_prefix='cli_tests_rg')
-    def temp_removed__test_update_volume_with_export_policy(self):
+    def test_export_policy(self):
         account_name = self.create_random_name(prefix='cli-acc-', length=24)
         pool_name = self.create_random_name(prefix='cli-pool-', length=24)
         volume_name = self.create_random_name(prefix='cli-vol-', length=24)
-        export_policy1 = '{"allowed_clients":"1.2.3.0/24", "rule_index": "1", "unix_read_only": "true", "unix_read_write": "false", "cifs": "false", "nfsv3": "true", "nfsv4": "false"}'
-        export_policy2 = '"allowed_clients":"1.2.4.0/24", "rule_index": "2", "unix_read_only": "true", "unix_read_write": "false", "cifs": "false", "nfsv3": "true", "nfsv4": "false"}'
-        export_policy = "[%s, %s]" % (export_policy1, export_policy2)
 
         volume = self.create_volume(account_name, pool_name, volume_name, '{rg}')
         assert volume['name'] == account_name + '/' + pool_name + '/' + volume_name
 
-        volume = self.cmd("az netappfiles volume update --resource-group {rg} -a %s -p %s -v %s --export-policy %s" % (account_name, pool_name, volume_name, export_policy)).get_output_in_json()
-        assert volume['name'] == account_name + '/' + pool_name + '/' + volume_name
-        assert volume['exportPolicy']['rules'][0]['allowedClients'] == '1.2.3.0/24'
-        # assert not volume['exportPolicy']['rules'][0]['cifs']
-        # assert volume['exportPolicy']['rules'][0]['ruleIndex'] == 1
+        # now add an export policy
+        # there is already one default rule present
+        vol_with_export_policy = self.cmd("netappfiles volume export-policy add -g {rg} -a %s -p %s -v %s --allowed-clients '1.2.3.0/24' --rule-index 3 --unix-read-only true --unix-read-write false --cifs false --nfsv3 true --nfsv4 false" % (account_name, pool_name, volume_name)).get_output_in_json()
+        assert vol_with_export_policy['name'] == account_name + '/' + pool_name + '/' + volume_name
+        assert vol_with_export_policy['exportPolicy']['rules'][0]['allowedClients'] == '1.2.3.0/24'
+        assert vol_with_export_policy['exportPolicy']['rules'][0]['ruleIndex'] == 3
+        assert vol_with_export_policy['exportPolicy']['rules'][0]['cifs'] == False
+
+        # and add another export policy
+        vol_with_export_policy = self.cmd("netappfiles volume export-policy add -g {rg} -a %s -p %s -v %s --allowed-clients '1.2.4.0/24' --rule-index 2 --unix-read-only true --unix-read-write false --cifs true --nfsv3 true --nfsv4 false" % (account_name, pool_name, volume_name)).get_output_in_json()
+        assert vol_with_export_policy['name'] == account_name + '/' + pool_name + '/' + volume_name
+        assert vol_with_export_policy['exportPolicy']['rules'][1]['allowedClients'] == '1.2.3.0/24'
+        assert vol_with_export_policy['exportPolicy']['rules'][0]['allowedClients'] == '1.2.4.0/24'
+        assert vol_with_export_policy['exportPolicy']['rules'][0]['cifs'] == True
+        assert len(vol_with_export_policy['exportPolicy']['rules']) == 3
+
+        # list the policies
+        export_policy = self.cmd("netappfiles volume export-policy list -g {rg} -a %s -p %s -v %s" % (account_name, pool_name, volume_name)).get_output_in_json()
+        assert len(export_policy['rules']) == 3
+
+        # and remove one
+        vol_with_export_policy = self.cmd("netappfiles volume export-policy remove -g {rg} -a %s -p %s -v %s --rule-index 2" % (account_name, pool_name, volume_name)).get_output_in_json()
+        assert vol_with_export_policy['name'] == account_name + '/' + pool_name + '/' + volume_name
+        assert len(vol_with_export_policy['exportPolicy']['rules']) == 2

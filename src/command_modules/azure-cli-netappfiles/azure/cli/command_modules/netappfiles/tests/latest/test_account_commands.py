@@ -16,13 +16,11 @@ class AzureNetAppFilesAccountServiceScenarioTest(ScenarioTest):
         tags = 'Tag1=Value1 Tag2=Value2'
 
         # create and check
+        # note : active directory checks are performed in their own subgroup test
         account = self.cmd("az netappfiles account create --resource-group {rg} --account-name '%s' -l %s --tags %s" % (account_name, LOCATION, tags)).get_output_in_json()
         assert account['name'] == account_name
         assert account['tags']['Tag1'] == 'Value1'
         assert account['tags']['Tag2'] == 'Value2'
-        # active directory subgroups not tested here - issue with parameters being interpreted as kwargs. Fully tested at command line instead.
-        # assert account['active_directories'][0]['username'] == 'aduser'
-        # assert account['active_directories'][0]['smbservername'] == 'SMBSERVER'
 
         account_list = self.cmd("netappfiles account list --resource-group {rg}").get_output_in_json()
         assert len(account_list) > 0
@@ -80,3 +78,28 @@ class AzureNetAppFilesAccountServiceScenarioTest(ScenarioTest):
         assert account['name'] == account_name
         assert account['tags']['Tag1'] == 'Value1'
         assert account['activeDirectories'] is None
+
+    @ResourceGroupPreparer(name_prefix='cli_tests_rg_')
+    def test_active_directory(self):
+        account_name = self.create_random_name(prefix='cli', length=24)
+
+        # create an account as normal
+        account = self.cmd("az netappfiles account create -g {rg} -a %s -l %s --tags Tag1=Value1" % (account_name, LOCATION)).get_output_in_json()
+        assert account['name'] == account_name
+
+        # now add an active directory
+        acc_with_active_directory = self.cmd("netappfiles account active-directory add -g {rg} -n %s --username aduser --password aduser --smb-server-name SMBSERVER --dns '1.2.3.4' --domain westcentralus" % (account_name)).get_output_in_json()
+        assert acc_with_active_directory['name'] == account_name
+        assert acc_with_active_directory['activeDirectories'][0]['username'] == 'aduser'
+
+        # now add an active directory
+        active_directory = self.cmd("netappfiles account active-directory list -g {rg} -n %s" % (account_name)).get_output_in_json()
+        assert account['name'] == account_name
+        assert active_directory[0]['username'] == 'aduser'
+
+        # now remove using the previously obtained details
+        acc_with_active_directory = self.cmd("netappfiles account active-directory remove -g {rg} -n %s --active-directory %s" % (account_name, active_directory[0]['activeDirectoryId'])).get_output_in_json()
+        assert account['name'] == account_name
+        assert account['activeDirectories'] == None
+
+
