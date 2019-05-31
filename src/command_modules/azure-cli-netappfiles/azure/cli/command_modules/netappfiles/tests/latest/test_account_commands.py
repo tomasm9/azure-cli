@@ -100,6 +100,4 @@ class AzureNetAppFilesAccountServiceScenarioTest(ScenarioTest):
         # now remove using the previously obtained details
         acc_with_active_directory = self.cmd("netappfiles account active-directory remove -g {rg} -n %s --active-directory %s" % (account_name, active_directory[0]['activeDirectoryId'])).get_output_in_json()
         assert account['name'] == account_name
-        assert account['activeDirectories'] == None
-
-
+        assert account['activeDirectories'] is None
