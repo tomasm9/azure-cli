@@ -258,7 +258,7 @@ helps['netappfiles volume'] = """
 
 helps['netappfiles volume create'] = """
     type: command
-    short-summary: Create a new Azure NetApp Files (ANF) volume. Export policies are applied with the subgroup commands
+    short-summary: Create a new Azure NetApp Files (ANF) volume. Export policies are applied with the subgroup commands but note that volumes are always created with a default export policy
     parameters:
         - name: --account-name -a
           type: string
