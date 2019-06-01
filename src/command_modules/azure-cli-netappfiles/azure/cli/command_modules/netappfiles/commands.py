@@ -127,7 +127,7 @@ def load_command_table(self, _):
                                  exception_handler=netappfiles_exception_handler)
 
     with self.command_group('netappfiles', netappfiles_mount_targets_sdk) as g:
-         g.command('list-mount-targets', 'list')
+        g.command('list-mount-targets', 'list')
 
     with self.command_group('netappfiles snapshot', netappfiles_snapshots_sdk) as g:
         g.show_command('show', 'get')
