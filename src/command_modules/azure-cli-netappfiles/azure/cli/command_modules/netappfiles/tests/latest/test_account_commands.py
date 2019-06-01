@@ -8,6 +8,9 @@ LOCATION = "eastus2"
 
 # No tidy up of tests required. The resource group is automatically removed
 
+# As a refactoring consideration for the future, consider use of authoring patterns desribed here
+# https://github.com/Azure/azure-cli/blob/dev/doc/authoring_tests.md#sample-5-get-more-from-resourcegrouppreparer
+
 
 class AzureNetAppFilesAccountServiceScenarioTest(ScenarioTest):
     @ResourceGroupPreparer(name_prefix='cli_tests_rg_')
@@ -88,16 +91,16 @@ class AzureNetAppFilesAccountServiceScenarioTest(ScenarioTest):
         assert account['name'] == account_name
 
         # now add an active directory
-        acc_with_active_directory = self.cmd("netappfiles account active-directory add -g {rg} -n %s --username aduser --password aduser --smb-server-name SMBSERVER --dns '1.2.3.4' --domain westcentralus" % (account_name)).get_output_in_json()
+        acc_with_active_directory = self.cmd("netappfiles account ad add -g {rg} -n %s --username aduser --password aduser --smb-server-name SMBSERVER --dns '1.2.3.4' --domain westcentralus" % (account_name)).get_output_in_json()
         assert acc_with_active_directory['name'] == account_name
         assert acc_with_active_directory['activeDirectories'][0]['username'] == 'aduser'
 
         # now add an active directory
-        active_directory = self.cmd("netappfiles account active-directory list -g {rg} -n %s" % (account_name)).get_output_in_json()
+        active_directory = self.cmd("netappfiles account ad list -g {rg} -n %s" % (account_name)).get_output_in_json()
         assert account['name'] == account_name
         assert active_directory[0]['username'] == 'aduser'
 
         # now remove using the previously obtained details
-        acc_with_active_directory = self.cmd("netappfiles account active-directory remove -g {rg} -n %s --active-directory %s" % (account_name, active_directory[0]['activeDirectoryId'])).get_output_in_json()
+        acc_with_active_directory = self.cmd("netappfiles account ad remove -g {rg} -n %s --active-directory %s" % (account_name, active_directory[0]['activeDirectoryId'])).get_output_in_json()
         assert account['name'] == account_name
         assert account['activeDirectories'] is None

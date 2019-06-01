@@ -88,7 +88,7 @@ helps['netappfiles account show'] = """
 
 # account active directory subgroup commands
 
-helps['netappfiles account active-directory add'] = """
+helps['netappfiles account ad add'] = """
     type: command
     short-summary: Add an active directory to the account.
     parameters:
@@ -116,10 +116,10 @@ helps['netappfiles account active-directory add'] = """
     examples:
         - name: Add an active directory to the account
           text: >
-            az netappfiles account active-directory add -g mygroup --name myname --username aduser --password aduser --smb-server-name SMBSERVER --dns 1.2.3.4 --domain westcentralus
+            az netappfiles account ad add -g mygroup --name myname --username aduser --password aduser --smb-server-name SMBSERVER --dns 1.2.3.4 --domain westcentralus
 """
 
-helps['netappfiles account active-directory list'] = """
+helps['netappfiles account ad list'] = """
     type: command
     short-summary: List the active directories of an account.
     parameters:
@@ -129,10 +129,10 @@ helps['netappfiles account active-directory list'] = """
     examples:
         - name: Add an active directory to the account
           text: >
-            az netappfiles account active-directory list -g mygroup --name myname
+            az netappfiles account ad list -g mygroup --name myname
 """
 
-helps['netappfiles account active-directory remove'] = """
+helps['netappfiles account ad remove'] = """
     type: command
     short-summary: Remove an active directory from the account.
     parameters:
@@ -145,7 +145,7 @@ helps['netappfiles account active-directory remove'] = """
     examples:
         - name: Remove an active directory from the account
           text: >
-            az netappfiles account active-directory remove -g mygroup --name myname --active-directory 13641da9-c0e9-4b97-84fc-4f8014a93848
+            az netappfiles account ad remove -g mygroup --name myname --active-directory 13641da9-c0e9-4b97-84fc-4f8014a93848
 """
 
 
@@ -458,14 +458,9 @@ helps['netappfiles volume export-policy remove'] = """
 
 # mounttargets
 
-helps['netappfiles mount-target'] = """
-    type: group
-    short-summary: Manage Azure NetApp Files (ANF) Mount Target Resources.
-"""
-
-helps['netappfiles mount-target list'] = """
+helps['netappfiles list-mount-targets'] = """
     type: command
-    short-summary: List the mount targets of an ANF volume.
+    short-summary: List the mount targets of an Azure NetApp Files (ANF) volume.
     parameters:
         - name: --account-name -a
           type: string
@@ -479,7 +474,7 @@ helps['netappfiles mount-target list'] = """
     examples:
         - name: list the mount targets of an ANF volume
           text: >
-            az netappfiles mount-target list -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname
+            az netappfiles list-mount-targets -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname
 """
 
 # snapshots
