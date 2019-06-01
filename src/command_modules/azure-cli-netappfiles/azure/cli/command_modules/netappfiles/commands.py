@@ -61,7 +61,7 @@ def load_command_table(self, _):
                                  doc_string_source='azure.mgmt.netapp.models#NetAppAccountPatch',
                                  exception_handler=netappfiles_exception_handler)
 
-    with self.command_group('netappfiles account active-directory', netappfiles_accounts_sdk) as g:
+    with self.command_group('netappfiles account ad', netappfiles_accounts_sdk) as g:
         g.generic_update_command('add',
                                  setter_name='update',
                                  custom_func_name='add_active_directory',
@@ -126,8 +126,8 @@ def load_command_table(self, _):
                                  doc_string_source='azure.mgmt.netapp.models#VolumePatch',
                                  exception_handler=netappfiles_exception_handler)
 
-    with self.command_group('netappfiles mount-target', netappfiles_mount_targets_sdk) as g:
-        g.command('list', 'list')
+    with self.command_group('netappfiles', netappfiles_mount_targets_sdk) as g:
+         g.command('list-mount-targets', 'list')
 
     with self.command_group('netappfiles snapshot', netappfiles_snapshots_sdk) as g:
         g.show_command('show', 'get')

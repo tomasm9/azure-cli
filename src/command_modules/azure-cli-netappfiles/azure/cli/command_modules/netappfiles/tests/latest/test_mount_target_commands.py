@@ -41,5 +41,5 @@ class AzureNetAppFilesMountTargetServiceScenarioTest(ScenarioTest):
         volume_name = "cli-volume-lefr-01"
         self.create_volume(account_name, pool_name, volume_name, '{rg}')
 
-        volume_list = self.cmd("netappfiles mount-target list --resource-group {rg} -a %s -p %s -v %s" % (account_name, pool_name, volume_name)).get_output_in_json()
+        volume_list = self.cmd("netappfiles list-mount-targets --resource-group {rg} -a %s -p %s -v %s" % (account_name, pool_name, volume_name)).get_output_in_json()
         assert len(volume_list) == 1

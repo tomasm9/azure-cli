@@ -13,7 +13,6 @@ class NetAppFilesCommandsLoader(AzCommandsLoader):
         from azure.cli.core.commands import CliCommandType
         netappfiles_custom = CliCommandType(operations_tmpl='azure.cli.command_modules.netappfiles.custom#{}')
         super(NetAppFilesCommandsLoader, self).__init__(cli_ctx=cli_ctx,
-                                                        min_profile='2017-03-10-profile',
                                                         custom_command_type=netappfiles_custom)
 
     def load_command_table(self, args):
