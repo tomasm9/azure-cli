@@ -88,6 +88,11 @@ helps['netappfiles account show'] = """
 
 # account active directory subgroup commands
 
+helps['netappfiles account ad'] = """
+    type: group
+    short-summary: Manage Azure NetApp Files (ANF) Account Resources.
+"""
+
 helps['netappfiles account ad add'] = """
     type: command
     short-summary: Add an active directory to the account.
@@ -351,7 +356,7 @@ helps['netappfiles volume list'] = """
     examples:
         - name: List the ANF volumes of the pool
           text: >
-            az netappfiles volume list -g mygroup --account-name myaccname --name mypoolname
+            az netappfiles volume list -g mygroup --account-name myaccname --pool-name mypoolname
 """
 
 helps['netappfiles volume show'] = """
@@ -374,6 +379,11 @@ helps['netappfiles volume show'] = """
 """
 
 # volume subgroup to create export policy attribute
+
+helps['netappfiles volume export-policy'] = """
+    type: group
+    short-summary: Manage Azure NetApp Files (ANF) Volume Resources.
+"""
 
 helps['netappfiles volume export-policy add'] = """
     type: command
@@ -412,7 +422,7 @@ helps['netappfiles volume export-policy add'] = """
     examples:
         - name: Add an export policy rule for the ANF volume
           text: >
-            az netappfiles volume export-policy add -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname --allowed-clients "1.2.3.0/24" --rule_index 2 --unix_read_only true --unix_read_write false --cifs false --nfsv3 true --nfsv4 false
+            az netappfiles volume export-policy add -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname --allowed-clients "1.2.3.0/24" --rule-index 2 --unix-read-only true --unix-read-write false --cifs false --nfsv3 true --nfsv4 false
 """
 
 helps['netappfiles volume export-policy list'] = """
@@ -431,7 +441,7 @@ helps['netappfiles volume export-policy list'] = """
     examples:
         - name: List the export policy rules for an ANF volume
           text: >
-            az netappfiles volume export-policy list -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname --rule_index 4
+            az netappfiles volume export-policy list -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname
 """
 
 helps['netappfiles volume export-policy remove'] = """
@@ -453,7 +463,7 @@ helps['netappfiles volume export-policy remove'] = """
     examples:
         - name: Remove an export policy rule for an ANF volume
           text: >
-            az netappfiles volume export-policy remove -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname --rule_index 4
+            az netappfiles volume export-policy remove -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname --rule-index 4
 """
 
 # mounttargets
@@ -474,7 +484,7 @@ helps['netappfiles list-mount-targets'] = """
     examples:
         - name: list the mount targets of an ANF volume
           text: >
-            az netappfiles list-mount-targets -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname
+            az netappfiles list-mount-targets -g mygroup --account-name myaccname --pool-name mypoolname --volume-name myvolname
 """
 
 # snapshots
@@ -547,7 +557,7 @@ helps['netappfiles snapshot list'] = """
     examples:
         - name: list the snapshots of an ANF volume
           text: >
-            az netappfiles snapshot list -g mygroup --account-name myaccname --pool-name mypoolname --name myvolname
+            az netappfiles snapshot list -g mygroup --account-name myaccname --pool-name mypoolname --volume-name myvolname
 """
 
 helps['netappfiles snapshot show'] = """
