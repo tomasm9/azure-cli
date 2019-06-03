@@ -25,7 +25,7 @@ helps['netappfiles account create'] = """
     type: command
     short-summary: Create a new Azure NetApp Files (ANF) account. Note that active directories are added using the subgroup commands.
     parameters:
-        - name: --account-name --name -a -n
+        - name: --account-name -a --name -n
           type: string
           short-summary: The name of the ANF account
         - name: --tags
@@ -40,7 +40,7 @@ helps['netappfiles account update'] = """
     type: command
     short-summary: Set/modify the tags for a specified ANF account.
     parameters:
-        - name: --account-name --name -a -n
+        - name: --account-name -a --name -n
           type: string
           short-summary: The name of the ANF account
         - name: --tags
@@ -55,7 +55,7 @@ helps['netappfiles account delete'] = """
     type: command
     short-summary: Delete the specified ANF account.
     parameters:
-        - name: --account-name --name -a -n
+        - name: --account-name -a --name -n
           type: string
           short-summary: The name of the ANF account
     examples:
@@ -77,7 +77,7 @@ helps['netappfiles account show'] = """
     type: command
     short-summary: Get the specified ANF account.
     parameters:
-        - name: --account-name --name -a -n
+        - name: --account-name -a --name -n
           type: string
           short-summary: The name of the ANF account
     examples:
@@ -90,14 +90,14 @@ helps['netappfiles account show'] = """
 
 helps['netappfiles account ad'] = """
     type: group
-    short-summary: Manage Azure NetApp Files (ANF) Account Resources.
+    short-summary: Manage Azure NetApp Files (ANF) Account active directories.
 """
 
 helps['netappfiles account ad add'] = """
     type: command
     short-summary: Add an active directory to the account.
     parameters:
-        - name: --account-name --name -a -n
+        - name: --account-name -a --name -n
           type: string
           short-summary: The name of the ANF account
         - name: --username
@@ -128,7 +128,7 @@ helps['netappfiles account ad list'] = """
     type: command
     short-summary: List the active directories of an account.
     parameters:
-        - name: --account-name --name -a -n
+        - name: --account-name -a --name -n
           type: string
           short-summary: The name of the ANF account
     examples:
@@ -141,7 +141,7 @@ helps['netappfiles account ad remove'] = """
     type: command
     short-summary: Remove an active directory from the account.
     parameters:
-        - name: --account-name --name -a -n
+        - name: --account-name -a --name -n
           type: string
           short-summary: The name of the ANF account
         - name: --active-directory
@@ -168,7 +168,7 @@ helps['netappfiles pool create'] = """
         - name: --account-name -a
           type: string
           short-summary: The name of the ANF account
-        - name: --pool-name --name -n -p
+        - name: --pool-name -n --name -p
           type: string
           short-summary: The name of the ANF pool
         - name: --size
@@ -382,7 +382,7 @@ helps['netappfiles volume show'] = """
 
 helps['netappfiles volume export-policy'] = """
     type: group
-    short-summary: Manage Azure NetApp Files (ANF) Volume Resources.
+    short-summary: Manage Azure NetApp Files (ANF) Volume export policies.
 """
 
 helps['netappfiles volume export-policy add'] = """
@@ -398,13 +398,13 @@ helps['netappfiles volume export-policy add'] = """
         - name: --volume-name --name -n -v
           type: string
           short-summary: The name of the ANF volume
-        - name: --rule_index
+        - name: --rule-index
           type: string
           short-summary: Order index. No number can be repeated. Max 6 rules.
-        - name: --unix_read_only
+        - name: --unix-read-only
           type: string
           short-summary: Flag indicating read only access
-        - name: --unix_read_write
+        - name: --unix-read-write
           type: string
           short-summary: Indication of read and write access
         - name: --cifs
@@ -457,7 +457,7 @@ helps['netappfiles volume export-policy remove'] = """
         - name: --volume-name --name -n -v
           type: string
           short-summary: The name of the ANF volume
-        - name: --rule_index
+        - name: --rule-index
           type: string
           short-summary: Order index. Range 1 to 6.
     examples:

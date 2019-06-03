@@ -5,7 +5,6 @@
 
 # pylint: disable=line-too-long
 
-import json
 from knack.log import get_logger
 from azure.mgmt.netapp.models import ActiveDirectory, NetAppAccount, NetAppAccountPatch, CapacityPool, Volume, VolumePatch, VolumePropertiesExportPolicy, ExportPolicyRule, Snapshot
 from azure.cli.core.commands.client_factory import get_subscription_id

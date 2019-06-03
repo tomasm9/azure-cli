@@ -23,32 +23,32 @@ def load_arguments(self, _):
         c.argument('tag', tags_type)
 
     with self.argument_context('netappfiles account') as c:
-        c.argument('account_name', account_name_type, options_list=['--account-name', '--name', '-n', '-a'])
+        c.argument('account_name', account_name_type, options_list=['--account-name', '-a', '--name', '-n'])
 
     with self.argument_context('netappfiles account list') as c:
         c.argument('account_name', help='The name of the ANF account', id_part=None)
 
     with self.argument_context('netappfiles pool') as c:
         c.argument('account_name', id_part='name')
-        c.argument('pool_name', pool_name_type, options_list=['--pool-name', '--name', '-n', '-p'])
+        c.argument('pool_name', pool_name_type, options_list=['--pool-name', '-p', '--name', '-n'])
 
     with self.argument_context('netappfiles pool list') as c:
-        c.argument('account_name', account_name_type, options_list=['--account-name', '--name', '-n', '-a'], id_part=None)
+        c.argument('account_name', account_name_type, options_list=['--account-name', '-a', '--name', '-n'], id_part=None)
 
     with self.argument_context('netappfiles volume') as c:
         c.argument('account_name', id_part='name')
         c.argument('pool_name', pool_name_type)
-        c.argument('volume_name', volume_name_type, options_list=['--volume-name', '--name', '-n', '-v'])
+        c.argument('volume_name', volume_name_type, options_list=['--volume-name', '-v', '--name', '-n'])
 
     with self.argument_context('netappfiles volume list') as c:
         c.argument('account_name', account_name_type, id_part=None)
-        c.argument('pool_name', pool_name_type, options_list=['--pool-name', '-n', '-p'], id_part=None)
+        c.argument('pool_name', pool_name_type, options_list=['--pool-name', '-p', '-n'], id_part=None)
 
     with self.argument_context('netappfiles snapshot') as c:
         c.argument('account_name', account_name_type)
         c.argument('pool_name', pool_name_type)
         c.argument('volume_name', volume_name_type)
-        c.argument('snapshot_name', id_part='child_name_3', options_list=['--snapshot-name', '--name', '-n', '-s'], help='The name of the ANF snapshot')
+        c.argument('snapshot_name', id_part='child_name_3', options_list=['--snapshot-name', '-s', '--name', '-n'], help='The name of the ANF snapshot')
 
     with self.argument_context('netappfiles snapshot list') as c:
         c.argument('account_name', account_name_type, id_part=None)
