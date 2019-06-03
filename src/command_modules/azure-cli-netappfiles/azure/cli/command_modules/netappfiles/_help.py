@@ -168,7 +168,7 @@ helps['netappfiles pool create'] = """
         - name: --account-name -a
           type: string
           short-summary: The name of the ANF account
-        - name: --pool-name -n --name -p
+        - name: --name --pool-name -n -p
           type: string
           short-summary: The name of the ANF pool
         - name: --size
@@ -192,7 +192,7 @@ helps['netappfiles pool update'] = """
         - name: --account-name -a
           type: string
           short-summary: The name of the ANF account
-        - name: --pool-name --name -n -p
+        - name: --name --pool-name -n -p
           type: string
           short-summary: The name of the ANF pool
         - name: --size
@@ -216,7 +216,7 @@ helps['netappfiles pool delete'] = """
         - name: --account-name -a
           type: string
           short-summary: The name of the ANF account
-        - name: --pool-name --name -n -p
+        - name: --name --pool-name -n -p
           type: string
           short-summary: The name of the ANF pool
     examples:
@@ -229,13 +229,13 @@ helps['netappfiles pool list'] = """
     type: command
     short-summary: L:ist the ANF pools for the specified account.
     parameters:
-        - name: --account-name -a -n
+        - name: --account-name -a
           type: string
           short-summary: The name of the ANF account
     examples:
         - name: List the pools for the ANF account
           text: >
-            az netappfiles pool list -g mygroup --name myname
+            az netappfiles pool list -g mygroup --account-name myname
 """
 
 helps['netappfiles pool show'] = """
@@ -245,7 +245,7 @@ helps['netappfiles pool show'] = """
         - name: --account-name -a
           type: string
           short-summary: The name of the ANF account
-        - name: --pool-name --name -n -p
+        - name: --name --pool-name -n -p
           type: string
           short-summary: The name of the ANF pool
     examples:
@@ -271,7 +271,7 @@ helps['netappfiles volume create'] = """
         - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
-        - name: --volume-name --name -n -v
+        - name: --name --volume-name -n -v
           type: string
           short-summary: The name of the ANF volume
         - name: --service-level
@@ -307,7 +307,7 @@ helps['netappfiles volume update'] = """
         - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
-        - name: --volume-name --name -n -v
+        - name: --name --volume-name -n -v
           type: string
           short-summary: The name of the ANF volume
         - name: --service-level
@@ -334,7 +334,7 @@ helps['netappfiles volume delete'] = """
         - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
-        - name: --volume-name --name -n -v
+        - name: --name --volume-name -n -v
           type: string
           short-summary: The name of the ANF volume
     examples:
@@ -350,7 +350,7 @@ helps['netappfiles volume list'] = """
         - name: --account-name -a
           type: string
           short-summary: The name of the ANF account
-        - name: --pool-name -n -p
+        - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
     examples:
@@ -369,7 +369,7 @@ helps['netappfiles volume show'] = """
         - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
-        - name: --volume-name --name -n -v
+        - name: --name --volume-name -n -v
           type: string
           short-summary: The name of the ANF pool
     examples:
@@ -395,7 +395,7 @@ helps['netappfiles volume export-policy add'] = """
         - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
-        - name: --volume-name --name -n -v
+        - name: --name --volume-name -n -v
           type: string
           short-summary: The name of the ANF volume
         - name: --rule-index
@@ -435,7 +435,7 @@ helps['netappfiles volume export-policy list'] = """
         - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
-        - name: --volume-name --name -n -v
+        - name: --name --volume-name -n -v
           type: string
           short-summary: The name of the ANF volume
     examples:
@@ -454,7 +454,7 @@ helps['netappfiles volume export-policy remove'] = """
         - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
-        - name: --volume-name --name -n -v
+        - name: --name --volume-name -n -v
           type: string
           short-summary: The name of the ANF volume
         - name: --rule-index
@@ -507,7 +507,7 @@ helps['netappfiles snapshot create'] = """
         - name: --volume-name -v
           type: string
           short-summary: The name of the ANF volume
-        - name: --snapshot-name --name -n -s
+        - name: --name --snapshot-name -n -s
           type: string
           short-summary: The name of the ANF snapshot
         - name: --file-system-id
@@ -532,7 +532,7 @@ helps['netappfiles snapshot delete'] = """
         - name: --volume-name -v
           type: string
           short-summary: The name of the ANF volume
-        - name: --snapshot-name --name -n -s
+        - name: --name --snapshot-name -n -s
           type: string
           short-summary: The name of the ANF snapshot
     examples:
@@ -551,7 +551,7 @@ helps['netappfiles snapshot list'] = """
         - name: --pool-name -p
           type: string
           short-summary: The name of the ANF pool
-        - name: --volume-name -n -v
+        - name: --volume-name -v
           type: string
           short-summary: The name of the ANF volume
     examples:
@@ -573,7 +573,7 @@ helps['netappfiles snapshot show'] = """
         - name: --volume-name -v
           type: string
           short-summary: The name of the ANF volume
-        - name: --snapshot-name --name -n -s
+        - name: --name --snapshot-name -n -s
           type: string
           short-summary: The name of the ANF snapshot
     examples:
