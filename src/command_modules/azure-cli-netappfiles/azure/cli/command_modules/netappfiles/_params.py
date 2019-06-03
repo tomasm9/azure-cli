@@ -23,7 +23,7 @@ def load_arguments(self, _):
         c.argument('tag', tags_type)
 
     with self.argument_context('netappfiles account') as c:
-        c.argument('account_name', account_name_type, options_list=['--account-name', '-a', '--name', '-n'])
+        c.argument('account_name', account_name_type, options_list=['--name', '--account-name', '-n', '-a'])
 
     with self.argument_context('netappfiles account list') as c:
         c.argument('account_name', help='The name of the ANF account', id_part=None)
