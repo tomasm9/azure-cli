@@ -6,7 +6,7 @@
 # pylint: disable=line-too-long
 
 from knack.log import get_logger
-from azure.mgmt.netapp.models import ActiveDirectory, NetAppAccount, NetAppAccountPatch, CapacityPool, Volume, VolumePatch, VolumePropertiesExportPolicy, ExportPolicyRule, Snapshot
+from azure.mgmt.netapp.models import ActiveDirectory, NetAppAccount, NetAppAccountPatch, CapacityPool, CapacityPoolPatch, Volume, VolumePatch, VolumePropertiesExportPolicy, ExportPolicyRule, Snapshot
 from azure.cli.core.commands.client_factory import get_subscription_id
 
 logger = get_logger(__name__)
@@ -87,7 +87,7 @@ def patch_pool(cmd, instance, size=None, service_level=None, tags=None):
     # put operation to update the record
     if size is not None:
         size = int(size) * tib_scale
-    body = CapacityPool(service_level=service_level, size=size, tags=tags)
+    body = CapacityPoolPatch(service_level=service_level, size=size, tags=tags)
     _update_mapper(instance, body, ['service_level', 'size', 'tags'])
     return body
 
