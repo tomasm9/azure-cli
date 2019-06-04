@@ -88,7 +88,7 @@ def patch_pool(cmd, instance, size=None, service_level=None, tags=None):
     if size is not None:
         size = int(size) * tib_scale
     body = CapacityPool(service_level=service_level, size=size, tags=tags)
-    _update_mapper(instance, body, ['location', 'service_level', 'size', 'tags'])
+    _update_mapper(instance, body, ['service_level', 'size', 'tags'])
     return body
 
 
