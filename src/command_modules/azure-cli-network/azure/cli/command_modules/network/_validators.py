@@ -298,6 +298,18 @@ def validate_virtual_hub(cmd, namespace):
         )
 
 
+def validate_waf_policy(cmd, namespace):
+    from msrestazure.tools import is_valid_resource_id, resource_id
+    if namespace.firewall_policy and not is_valid_resource_id(namespace.firewall_policy):
+        namespace.firewall_policy = resource_id(
+            subscription=get_subscription_id(cmd.cli_ctx),
+            resource_group=namespace.resource_group_name,
+            namespace='Microsoft.Network',
+            type='ApplicationGatewayWebApplicationFirewallPolicies',
+            name=namespace.firewall_policy
+        )
+
+
 def bandwidth_validator_factory(mbps=True):
     def validator(namespace):
         return validate_circuit_bandwidth(namespace, mbps=mbps)
@@ -415,6 +427,22 @@ def validate_local_gateway(cmd, namespace):
             type='localNetworkGateways')
 
 
+def validate_match_variables(cmd, namespace):
+    if not namespace.match_variables:
+        return
+
+    MatchVariable = cmd.get_models('MatchVariable')
+    variables = []
+    for match in namespace.match_variables:
+        try:
+            name, selector = match.split('.', 1)
+        except ValueError:
+            name = match
+            selector = None
+        variables.append(MatchVariable(variable_name=name, selector=selector))
+    namespace.match_variables = variables
+
+
 def validate_metadata(namespace):
     if namespace.metadata:
         namespace.metadata = dict(x.split('=', 1) for x in namespace.metadata)
@@ -437,6 +465,17 @@ def validate_public_ip_prefix(cmd, namespace):
             name=namespace.public_ip_prefix,
             namespace='Microsoft.Network',
             type='publicIPPrefixes')
+
+
+def validate_nat_gateway(cmd, namespace):
+    from msrestazure.tools import is_valid_resource_id, resource_id
+    if namespace.nat_gateway and not is_valid_resource_id(namespace.nat_gateway):
+        namespace.nat_gateway = resource_id(
+            subscription=get_subscription_id(cmd.cli_ctx),
+            resource_group=namespace.resource_group_name,
+            name=namespace.nat_gateway,
+            namespace='Microsoft.Network',
+            type='natGateways')
 
 
 def validate_private_ip_address(namespace):
@@ -738,6 +777,7 @@ def process_ag_create_namespace(cmd, namespace):
     validate_ssl_cert(namespace)
     validate_tags(namespace)
     validate_custom_error_pages(namespace)
+    validate_waf_policy(cmd, namespace)
 
 
 def process_auth_create_namespace(cmd, namespace):

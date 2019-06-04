@@ -39,7 +39,7 @@ image_by_tag_or_digest_type = CLIArgumentType(
 
 
 def load_arguments(self, _):  # pylint: disable=too-many-statements
-    SkuName, PasswordName, OsType, DefaultAction, PolicyStatus, WebhookAction, WebhookStatus, TaskStatus, BaseImageTriggerType, RunStatus, SourceRegistryLoginMode = self.get_models('SkuName', 'PasswordName', 'OsType', 'DefaultAction', 'PolicyStatus', 'WebhookAction', 'WebhookStatus', 'TaskStatus', 'BaseImageTriggerType', 'RunStatus', 'SourceRegistryLoginMode')
+    SkuName, PasswordName, DefaultAction, PolicyStatus, WebhookAction, WebhookStatus, TaskStatus, BaseImageTriggerType, RunStatus, SourceRegistryLoginMode = self.get_models('SkuName', 'PasswordName', 'DefaultAction', 'PolicyStatus', 'WebhookAction', 'WebhookStatus', 'TaskStatus', 'BaseImageTriggerType', 'RunStatus', 'SourceRegistryLoginMode')
     with self.argument_context('acr') as c:
         c.argument('tags', arg_type=tags_type)
         c.argument('registry_name', options_list=['--name', '-n'], help='The name of the container registry. You can configure the default registry name using `az configure --defaults acr=<registry name>`', completer=get_resource_name_completion_list(REGISTRY_RESOURCE_TYPE), configured_default='acr')
@@ -57,8 +57,7 @@ def load_arguments(self, _):  # pylint: disable=too-many-statements
         c.argument('no_logs', help="Do not show logs after successfully queuing the build.", action='store_true')
         c.argument('no_wait', help="Do not wait for the run to complete and return immediately after queuing the run.", action='store_true')
         c.argument('no_format', help="Indicates whether the logs should be displayed in raw format", action='store_true')
-        c.argument('os_type', options_list=['--os'], help='The operating system type required for the build.', arg_type=get_enum_type(OsType), deprecate_info=c.deprecate(target='--os', redirect='--platform', hide=True))
-        c.argument('platform', help="The platform where build/task is run, Eg, 'windows' and 'linux'. When it's used in build commands, it also can be specified in 'os/arch/variant' format for the resulting image. Eg, linux/arm/v7. The 'arch' and 'variant' parts are optional.")
+        c.argument('platform', options_list=['--platform', c.deprecate(target='--os', redirect='--platform', hide=True)], help="The platform where build/task is run, Eg, 'windows' and 'linux'. When it's used in build commands, it also can be specified in 'os/arch/variant' format for the resulting image. Eg, linux/arm/v7. The 'arch' and 'variant' parts are optional.")
         c.argument('target', help='The name of the target build stage.')
         c.argument('auth_mode', help='Auth mode of the source registry.', arg_type=get_enum_type(SourceRegistryLoginMode))
         # Overwrite default shorthand of cmd to make availability for acr usage
@@ -135,6 +134,13 @@ def load_arguments(self, _):  # pylint: disable=too-many-statements
         c.argument('set_value', options_list=['--set'], help="Value in 'name[=value]' format. Multiples supported by passing --set multiple times.", action='append', validator=validate_set)
         c.argument('set_secret', help="Secret value in '--set name[=value]' format. Multiples supported by passing --set multiple times.", action='append', validator=validate_set_secret)
 
+    with self.argument_context('acr pack') as c:
+        c.argument('registry_name', options_list=['--registry', '-r'])
+        c.argument('image_name', options_list=['--image', '-t'], help="The name and tag of the image using the format: '-t repo/image:tag'.")
+        c.argument('builder', options_list=['--builder', '-b'], help="The name and tag of a Buildpack builder image.")
+        c.argument('pull', options_list=['--pull'], help="Pull the latest builder and run images before use.", action='store_true')
+        c.positional('source_location', help="The local source code directory path (e.g., './src') or the URL to a git repository (e.g., 'https://github.com/Azure-Samples/acr-build-helloworld-node.git') or a remote tarball (e.g., 'http://server/context.tar.gz').", completer=FilesCompleter())
+
     with self.argument_context('acr build') as c:
         c.argument('registry_name', options_list=['--registry', '-r'])
         c.positional('source_location', help="The local source code directory path (e.g., './src') or the URL to a git repository (e.g., 'https://github.com/Azure-Samples/acr-build-helloworld-node.git') or a remote tarball (e.g., 'http://server/context.tar.gz').", completer=FilesCompleter())
@@ -182,8 +188,14 @@ def load_arguments(self, _):  # pylint: disable=too-many-statements
         # Run agent parameters
         c.argument('cpu', type=int, help='The CPU configuration in terms of number of cores required for the run.')
 
+        # MSI parameter
+        c.argument('assign_identity', nargs='*', help="Assigns managed identities to the task. Use '[system]' to refer to the system-assigned identity or a resource ID to refer to a user-assigned identity.")
+
     with self.argument_context('acr task create') as c:
         c.argument('task_name', completer=None)
+
+    with self.argument_context('acr task identity') as c:
+        c.argument('identities', options_list=['--identities'], nargs='*', help="Assigns managed identities to the task. Use '[system]' to refer to the system-assigned identity or a resource ID to refer to a user-assigned identity.")
 
     with self.argument_context('acr task credential') as c:
         # Custom registry credentials
@@ -191,8 +203,9 @@ def load_arguments(self, _):  # pylint: disable=too-many-statements
 
     for scope in ['acr task credential add', 'acr task credential update']:
         with self.argument_context(scope) as c:
-            c.argument('username', options_list=['--username', '-u'], help='The username to login to the custom registry.', required=True)
-            c.argument('password', options_list=['--password', '-p'], help='The password to login to the custom registry.', required=True)
+            c.argument('username', options_list=['--username', '-u'], help="The username to login to the custom registry. This can be plain text or a key vault secret URI.")
+            c.argument('password', options_list=['--password', '-p'], help="The password to login to the custom registry. This can be plain text or a key vault secret URI.")
+            c.argument('use_identity', help="The task managed identity used for the credential. Use '[system]' to refer to the system-assigned identity or a client id to refer to a user-assigned identity.")
 
     with self.argument_context('acr helm') as c:
         c.argument('resource_group_name', deprecate_info=c.deprecate(hide=True))

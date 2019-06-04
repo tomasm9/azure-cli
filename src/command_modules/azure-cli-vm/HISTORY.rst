@@ -3,11 +3,16 @@
 Release History
 ===============
 
+2.2.22
+++++++
+* vm create: allows for more flexibility with image data-disk luns. Image data-disk luns do not have to start from 0 and can skip numbers.
+
 2.2.21
 ++++++
 * vm create: Added --computer-name for setting a vm's computer name.
 * vm/vmss create: `--ssh-key-value` renamed to `--ssh-key-values` and can now accept multiple ssh public key values or paths.
   Note: this is **not** a breaking change. `--ssh-key-value` will be parsed correctly as it matches only `--ssh-key-values`
+* ppg create: `--type`, the proximity placement group type, is now optional.
 
 2.2.20
 ++++++
