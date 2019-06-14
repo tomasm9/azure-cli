@@ -32,7 +32,7 @@ CLASSIFIERS = [
 DEPENDENCIES = [
     'azure-cli-core',
     'azure-functions-devops-build==0.0.22',
-    'azure-mgmt-web==0.41.0',
+    'azure-mgmt-web==0.42.0',
     'azure-mgmt-storage==3.3.0',
     'azure-mgmt-containerregistry==2.8.0',
     'azure-mgmt-applicationinsights==0.1.1',
@@ -40,7 +40,7 @@ DEPENDENCIES = [
     'urllib3[secure]>=1.18',
     'xmltodict',
     'fabric>=2.4',
-    'cryptography<2.5',
+    'cryptography',
     'pyOpenSSL',
     'six',
     'vsts-cd-manager<1.1.0',

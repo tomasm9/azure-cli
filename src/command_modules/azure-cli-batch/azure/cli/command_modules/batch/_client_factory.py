@@ -89,6 +89,10 @@ def batch_data_service_factory(cli_ctx, kwargs):
             resource = cli_ctx.cloud.endpoints.batch_resource_id
         credentials, _, _ = profile.get_login_credentials(resource=resource)
     else:
+        # Verify all values are populated and display readable error
+        if not all([account_name, account_key, account_endpoint]):
+            raise ValueError(
+                'usage error: --account-name NAME --account-key KEY --account-endpoint ENDPOINT')
         credentials = batchauth.SharedKeyCredentials(account_name, account_key)
     if not (account_endpoint.startswith('https://') or
             account_endpoint.startswith('http://')):
